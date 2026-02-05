@@ -546,6 +546,377 @@
 
       /* Show small HUD on mobile */
     }
+
+    /* ============ SHOP SYSTEM STYLES ============ */
+    .shop-btn {
+      background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+      border: 3px solid #333;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #c0392b;
+      transition: all 0.2s;
+      margin-top: 10px;
+      width: 100%;
+      pointer-events: auto;
+    }
+
+    .shop-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 7px 0 #c0392b;
+    }
+
+    .shop-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #c0392b;
+    }
+
+    .mobile-shop-btn {
+      background: #f39c12;
+      border: 2px solid #333;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .shop-modal {
+      background: white;
+      padding: 0;
+      border-radius: 20px;
+      border: 4px solid #333;
+      max-width: 900px;
+      width: 90%;
+      max-height: 85vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+      box-shadow: 0 20px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .shop-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 3px solid #333;
+    }
+
+    .shop-header h2 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .shop-close-btn {
+      background: rgba(255, 255, 255, 0.9);
+      border: 2px solid #333;
+      color: #333;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .shop-close-btn:hover {
+      background: #ff6b6b;
+      color: white;
+      transform: rotate(90deg);
+    }
+
+    .shop-score-display {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #3498db;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .shop-score-display span {
+      color: #2ecc71;
+      font-size: 24px;
+    }
+
+    .shop-tabs {
+      display: flex;
+      background: #f1f2f6;
+      border-bottom: 3px solid #333;
+    }
+
+    .shop-tab {
+      flex: 1;
+      padding: 15px;
+      background: #dfe4ea;
+      border: none;
+      border-right: 2px solid #333;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #57606f;
+    }
+
+    .shop-tab:last-child {
+      border-right: none;
+    }
+
+    .shop-tab:hover {
+      background: #ced6e0;
+    }
+
+    .shop-tab.active {
+      background: white;
+      color: #667eea;
+      border-bottom: 4px solid #667eea;
+    }
+
+    .shop-content {
+      padding: 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .computer-progress {
+      background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      border: 3px solid #667eea;
+    }
+
+    .computer-progress h3 {
+      margin: 0 0 10px 0;
+      color: #667eea;
+      font-size: 22px;
+    }
+
+    .progress-text {
+      font-size: 16px;
+      font-weight: bold;
+      color: #2d3436;
+      margin-bottom: 10px;
+    }
+
+    .progress-text span {
+      color: #2ecc71;
+      font-size: 20px;
+    }
+
+    .progress-bar-container {
+      background: #dfe4ea;
+      height: 30px;
+      border-radius: 15px;
+      overflow: hidden;
+      border: 2px solid #333;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #2ecc71 0%, #00b894 100%);
+      width: 0%;
+      transition: width 0.5s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .powerup-info {
+      background: linear-gradient(135deg, #f39c1215 0%, #fdcb6e15 100%);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      border: 3px solid #f39c12;
+      text-align: center;
+    }
+
+    .powerup-info h3 {
+      margin: 0 0 10px 0;
+      color: #f39c12;
+      font-size: 24px;
+    }
+
+    .powerup-info span {
+      color: #2ecc71;
+      font-size: 28px;
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .shop-item {
+      background: white;
+      border: 3px solid #dfe4ea;
+      border-radius: 15px;
+      padding: 20px;
+      transition: all 0.3s;
+      position: relative;
+      box-shadow: 0 4px 0 #dfe4ea;
+    }
+
+    .shop-item:hover {
+      transform: translateY(-5px);
+      border-color: #3498db;
+      box-shadow: 0 8px 0 #74b9ff;
+    }
+
+    .shop-item.owned {
+      background: #e8f5e9;
+      border-color: #2ecc71;
+      box-shadow: 0 4px 0 #00b894;
+    }
+
+    .shop-item.owned:hover {
+      transform: none;
+      box-shadow: 0 4px 0 #00b894;
+    }
+
+    .item-icon {
+      font-size: 60px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .item-name {
+      font-weight: bold;
+      font-size: 18px;
+      color: #2d3436;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .item-desc {
+      font-size: 14px;
+      color: #636e72;
+      margin-bottom: 15px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .item-price {
+      font-size: 20px;
+      font-weight: bold;
+      color: #3498db;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .buy-btn {
+      background: #3498db;
+      border: 2px solid #2980b9;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 0 #2980b9;
+    }
+
+    .buy-btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #21618c;
+    }
+
+    .buy-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #2980b9;
+    }
+
+    .buy-btn:disabled {
+      background: #95a5a6;
+      border-color: #7f8c8d;
+      box-shadow: 0 2px 0 #7f8c8d;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .buy-btn:disabled:hover {
+      transform: none;
+    }
+
+    .owned-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #2ecc71;
+      color: white;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 14px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .hint-button {
+      background: linear-gradient(135deg, #f39c12 0%, #fdcb6e 100%);
+      border: 3px solid #e67e22;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 15px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 0 #d35400;
+    }
+
+    .hint-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #d35400;
+    }
+
+    .hint-button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #d35400;
+    }
+
+    .hint-button:disabled {
+      background: #95a5a6;
+      border-color: #7f8c8d;
+      box-shadow: 0 2px 0 #7f8c8d;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    @media (max-width: 768px) {
+      .shop-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .shop-modal {
+        width: 95%;
+        max-height: 90vh;
+      }
+    }
   </style>
 </head>
 
@@ -642,12 +1013,20 @@
           <div style="font-size: 12px; font-weight: 600;">Move: WASD / Arrows<br>Run: SHIFT<br>Jump: SPACE<br>Interact:
             E</div>
         </div>
+        <div class="hud-panel" style="background: rgba(255,243,205,0.95); cursor: pointer;" onclick="openShop()">
+          <div class="hud-label">💡 Hints</div>
+          <div class="hud-value" id="hud-hints" style="color: #f39c12;">0</div>
+        </div>
+        <button class="shop-btn" onclick="openShop()">🛒 Shop</button>
       </div>
 
       <!-- Mobile HUD -->
       <div class="mobile-top-bar">
         <div class="mobile-score">⭐ Score: <span id="mobile-score-val">0</span></div>
-        <div class="mobile-info-btn" onclick="toggleInfoModal()">?</div>
+        <div style="display: flex; gap: 8px;">
+          <div class="mobile-shop-btn" onclick="openShop()">🛒</div>
+          <div class="mobile-info-btn" onclick="toggleInfoModal()">?</div>
+        </div>
       </div>
 
       <div id="interaction-prompt">PRESS [E] OR TAP 🖐️</div>
@@ -693,6 +1072,46 @@
         <div id="task-content"></div>
         <div id="task-feedback" style="margin: 15px 0; font-weight: bold;"></div>
         <div id="task-buttons"></div>
+      </div>
+    </div>
+
+    <!-- SHOP MODAL -->
+    <div class="modal-overlay" id="shop-modal">
+      <div class="shop-modal">
+        <div class="shop-header">
+          <h2>🛒 Tech Shop</h2>
+          <button class="shop-close-btn" onclick="closeShop()">✕</button>
+        </div>
+
+        <div class="shop-score-display">
+          Your Score: <span id="shop-score">0</span> points
+        </div>
+
+        <div class="shop-tabs">
+          <button class="shop-tab active" onclick="switchShopTab('parts')">💻 Computer Parts</button>
+          <button class="shop-tab" onclick="switchShopTab('powerups')">⚡ Power-Ups</button>
+        </div>
+
+        <!-- Computer Parts Tab -->
+        <div class="shop-content" id="shop-parts-content">
+          <div class="computer-progress" id="computer-progress">
+            <h3>🖥️ Build Your Computer</h3>
+            <div class="progress-text">Parts Collected: <span id="parts-count">0</span>/10</div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" id="progress-bar"></div>
+            </div>
+          </div>
+          <div class="shop-grid" id="parts-grid"></div>
+        </div>
+
+        <!-- Power-Ups Tab -->
+        <div class="shop-content" id="shop-powerups-content" style="display:none;">
+          <div class="powerup-info">
+            <h3>💡 Available Hints: <span id="hints-count">0</span></h3>
+            <p style="color:#666; font-size:14px;">Hints reveal one letter in fill-blank questions!</p>
+          </div>
+          <div class="shop-grid" id="powerups-grid"></div>
+        </div>
       </div>
     </div>
 
@@ -888,6 +1307,24 @@
       }
     ];
 
+    const SHOP_ITEMS = {
+      computerParts: [
+        { id: 'cpu', name: 'CPU (Processor)', description: 'The brain of the computer', price: 40, icon: '🧠', category: 'parts' },
+        { id: 'gpu', name: 'GPU (Graphics Card)', description: 'Makes graphics look amazing', price: 50, icon: '🎮', category: 'parts' },
+        { id: 'ram', name: 'RAM (Memory)', description: 'Helps run programs faster', price: 30, icon: '💾', category: 'parts' },
+        { id: 'motherboard', name: 'Motherboard', description: 'Connects all the parts together', price: 35, icon: '🔌', category: 'parts' },
+        { id: 'storage', name: 'Storage (SSD)', description: 'Stores all your files and programs', price: 30, icon: '💿', category: 'parts' },
+        { id: 'psu', name: 'Power Supply', description: 'Provides power to all components', price: 25, icon: '⚡', category: 'parts' },
+        { id: 'case', name: 'Computer Case', description: 'Houses all the components', price: 20, icon: '📦', category: 'parts' },
+        { id: 'monitor', name: 'Monitor', description: 'Display to see everything', price: 35, icon: '🖥️', category: 'parts' },
+        { id: 'keyboard', name: 'Keyboard', description: 'Type and control your PC', price: 15, icon: '⌨️', category: 'parts' },
+        { id: 'mouse', name: 'Mouse', description: 'Navigate and click easily', price: 10, icon: '🖱️', category: 'parts' }
+      ],
+      powerUps: [
+        { id: 'hint', name: 'Letter Hint', description: 'Reveals one letter in fill-blank questions', price: 10, icon: '💡', category: 'powerup' }
+      ]
+    };
+
     // ============ GAME STATE & THREE JS GLOBALS ============
     let gameState = {
       score: 0,
@@ -905,7 +1342,13 @@
       isRunning: false,
       startTime: 0,
       perfectScore: true,
-      wrongAttempts: 0
+      wrongAttempts: 0,
+      inventory: {
+        computerParts: [], // Array of owned part IDs
+        hints: 0 // Number of hint power-ups owned
+      },
+      currentTask: null, // Current task being attempted
+      usedHintInCurrentTask: false // Track if hint was used in current question
     };
 
     // Softened Jump Physics (Floatier)
@@ -1034,6 +1477,174 @@
       if (el.style.display === 'flex') el.style.display = 'none';
       else el.style.display = 'flex';
     };
+
+    // ============ SHOP SYSTEM FUNCTIONS ============
+    window.openShop = function () {
+      const shopModal = document.getElementById('shop-modal');
+      shopModal.classList.add('active');
+      updateShopDisplay();
+    };
+
+    window.closeShop = function () {
+      const shopModal = document.getElementById('shop-modal');
+      shopModal.classList.remove('active');
+    };
+
+    window.switchShopTab = function (tab) {
+      // Update tab buttons
+      document.querySelectorAll('.shop-tab').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Show/hide content
+      if (tab === 'parts') {
+        document.getElementById('shop-parts-content').style.display = 'block';
+        document.getElementById('shop-powerups-content').style.display = 'none';
+      } else {
+        document.getElementById('shop-parts-content').style.display = 'none'
+          ;
+        document.getElementById('shop-powerups-content').style.display = 'block';
+      }
+    };
+
+    function updateShopDisplay() {
+      // Update score display
+      document.getElementById('shop-score').textContent = gameState.score;
+      document.getElementById('hints-count').textContent = gameState.inventory.hints;
+
+      // Update computer parts progress
+      const partsOwned = gameState.inventory.computerParts.length;
+      document.getElementById('parts-count').textContent = partsOwned;
+      const progressPercent = (partsOwned / 10) * 100;
+      const progressBar = document.getElementById('progress-bar');
+      progressBar.style.width = progressPercent + '%';
+      if (progressPercent > 0) {
+        progressBar.textContent = Math.round(progressPercent) + '%';
+      }
+
+      // Populate computer parts grid
+      const partsGrid = document.getElementById('parts-grid');
+      partsGrid.innerHTML = '';
+      SHOP_ITEMS.computerParts.forEach(item => {
+        const isOwned = gameState.inventory.computerParts.includes(item.id);
+        const canAfford = gameState.score >= item.price;
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'shop-item' + (isOwned ? ' owned' : '');
+        itemDiv.innerHTML = `
+          ${isOwned ? '<div class="owned-badge">✓ Owned</div>' : ''}
+          <div class="item-icon">${item.icon}</div>
+          <div class="item-name">${item.name}</div>
+          <div class="item-desc">${item.description}</div>
+          <div class="item-price">${item.price} points</div>
+          <button class="buy-btn" 
+            onclick="purchaseItem('${item.id}', '${item.category}')" 
+            ${isOwned || !canAfford ? 'disabled' : ''}>
+            ${isOwned ? 'Owned' : (canAfford ? 'Buy' : 'Not Enough Points')}
+          </button>
+        `;
+        partsGrid.appendChild(itemDiv);
+      });
+
+      // Populate power-ups grid
+      const powerupsGrid = document.getElementById('powerups-grid');
+      powerupsGrid.innerHTML = '';
+      SHOP_ITEMS.powerUps.forEach(item => {
+        const canAfford = gameState.score >= item.price;
+
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'shop-item';
+        itemDiv.innerHTML = `
+          <div class="item-icon">${item.icon}</div>
+          <div class="item-name">${item.name}</div>
+          <div class="item-desc">${item.description}</div>
+          <div class="item-price">${item.price} points</div>
+          <button class="buy-btn" 
+            onclick="purchaseItem('${item.id}', '${item.category}')" 
+            ${!canAfford ? 'disabled' : ''}>
+            ${canAfford ? 'Buy' : 'Not Enough Points'}
+          </button>
+        `;
+        powerupsGrid.appendChild(itemDiv);
+      });
+    }
+
+    window.purchaseItem = function (itemId, category) {
+      let item;
+      let itemArray;
+
+      if (category === 'parts') {
+        itemArray = SHOP_ITEMS.computerParts;
+        item = itemArray.find(i => i.id === itemId);
+      } else if (category === 'powerup') {
+        itemArray = SHOP_ITEMS.powerUps;
+        item = itemArray.find(i => i.id === itemId);
+      }
+
+      if (!item) return;
+
+      // Check if player has enough points
+      if (gameState.score < item.price) {
+        showPurchaseFeedback('❌ Not enough points!', false);
+        playErrorSound();
+        return;
+      }
+
+      // Check if part is already owned (only for computer parts)
+      if (category === 'parts' && gameState.inventory.computerParts.includes(itemId)) {
+        showPurchaseFeedback('❌ You already own this part!', false);
+        playErrorSound();
+        return;
+      }
+
+      // Process purchase
+      gameState.score -= item.price;
+
+      if (category === 'parts') {
+        gameState.inventory.computerParts.push(itemId);
+        showPurchaseFeedback(`✅ Purchased ${item.name}!`, true);
+
+        // Check if computer is complete
+        if (gameState.inventory.computerParts.length === 10) {
+          setTimeout(() => {
+            showAchievement('🖥️ Computer Built!', 'You built a complete computer!');
+            gameState.achievements.add('computer');
+          }, 500);
+        }
+      } else if (category === 'powerup' && itemId === 'hint') {
+        gameState.inventory.hints += 1;
+        showPurchaseFeedback(`✅ Purchased ${item.name}! (Total: ${gameState.inventory.hints})`, true);
+      }
+
+      playSuccessSound();
+      updateHUD();
+      updateShopDisplay();
+    };
+
+    function showPurchaseFeedback(message, success) {
+      const feedback = document.createElement('div');
+      feedback.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: ${success ? '#2ecc71' : '#e74c3c'};
+        color: white;
+        padding: 20px 40px;
+        border-radius: 15px;
+        font-weight: bold;
+        font-size: 20px;
+        z-index: 10000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        animation: popIn 0.3s ease;
+      `;
+      feedback.textContent = message;
+      document.body.appendChild(feedback);
+      setTimeout(() => {
+        feedback.style.opacity = '0';
+        feedback.style.transition = 'opacity 0.3s';
+        setTimeout(() => feedback.remove(), 300);
+      }, 1500);
+    }
 
     function initAudio() {
       bgMusic = document.getElementById('bg-music');
@@ -1305,7 +1916,7 @@
         carGroup.rotation.y = rotation;
         scene.add(carGroup);
 
-        buildings.push({ x, z, w: 25, d: 45 });
+        cars.push({ x, z, w: 25, d: 45 }); // Only cars should block movement
       }
 
       // Create 4 parked cars
@@ -1337,7 +1948,7 @@
       VILLAGERS.forEach(v => createVillager(v));
 
       // Add streetlights with point lights
-      createStreetLights();
+      // createStreetLights(); // REMOVED: Street lamps causing navigation issues
 
       // Buildings
       // School (Red Brick)
@@ -2275,7 +2886,7 @@
 
       group.position.set(x, 0, z);
       scene.add(group);
-      buildings.push({ x, z, w: 20, d: 20 });
+      // buildings.push({ x, z, w: 20, d: 20 }); // REMOVED: Trees should not block movement
     }
 
     function createDetailedHuman(data) {
@@ -2873,6 +3484,18 @@
 
     function checkCollision(x, z) {
       const playerSize = 10;
+
+      // Check collision with cars
+      for (let b of cars) {
+        if (x > b.x - b.w / 2 - playerSize &&
+          x < b.x + b.w / 2 + playerSize &&
+          z > b.z - b.d / 2 - playerSize &&
+          z < b.z + b.d / 2 + playerSize) {
+          return true;
+        }
+      }
+
+      // Check collision with buildings (school, library, shop, mosque, etc.)
       for (let b of buildings) {
         if (x > b.x - b.w / 2 - playerSize &&
           x < b.x + b.w / 2 + playerSize &&
@@ -2881,6 +3504,7 @@
           return true;
         }
       }
+
       return false;
     }
 
@@ -3075,6 +3699,64 @@
       modal.classList.add('active');
     }
 
+    window.useHintInQuestion = function () {
+      if (gameState.usedHintInCurrentTask) {
+        showPurchaseFeedback('💡 You can only use one hint per question!', false);
+        return;
+      }
+
+      if (gameState.inventory.hints <= 0) {
+        showPurchaseFeedback('❌ No hints available! Buy more in the shop.', false);
+        playErrorSound();
+        return;
+      }
+
+      const task = gameState.currentTask;
+      if (!task || task.type !== 'fillBlank') return;
+
+      const answer = task.blank.toLowerCase();
+      const input = document.getElementById('blank-input');
+      const currentValue = input.value.toLowerCase();
+      const revealedDiv = document.getElementById('revealed-letters');
+
+      // Find unrevealed letters
+      const unrevealedPositions = [];
+      for (let i = 0; i < answer.length; i++) {
+        if (currentValue[i] !== answer[i]) {
+          unrevealedPositions.push(i);
+        }
+      }
+
+      if (unrevealedPositions.length === 0) {
+        showPurchaseFeedback('💡 You already have the complete answer!', false);
+        return;
+      }
+
+      // Reveal one random letter
+      const randomPos = unrevealedPositions[Math.floor(Math.random() * unrevealedPositions.length)];
+      const revealedLetter = answer[randomPos];
+
+      // Update revealed letters display
+      let revealedText = revealedDiv.innerHTML;
+      revealedText += `<span style="background:#fff3cd; padding:5px 10px; margin:2px; border-radius:5px; display:inline-block;">Letter ${randomPos + 1}: "${revealedLetter.toUpperCase()}"</span> `;
+      revealedDiv.innerHTML = revealedText;
+
+      // Deduct hint
+      gameState.inventory.hints -= 1;
+      gameState.usedHintInCurrentTask = true;
+
+      // Disable hint button
+      const hintBtn = document.getElementById('hint-reveal-btn');
+      if (hintBtn) {
+        hintBtn.disabled = true;
+        hintBtn.innerHTML = '💡 Hint Used';
+      }
+
+      playSuccessSound();
+      updateHUD();
+      showPurchaseFeedback(`💡 Revealed: Letter ${randomPos + 1} is "${revealedLetter.toUpperCase()}"`, true);
+    };
+
     function checkAnswer(villager, selectedIdx, btnElement) {
       const task = villager.task;
       const feedback = document.getElementById('task-feedback');
@@ -3155,6 +3837,11 @@
     function updateHUD() {
       // Update Desktop
       document.getElementById('hud-score').innerText = gameState.score;
+
+      // Update hints count
+      const hudHints = document.getElementById('hud-hints');
+      if (hudHints) hudHints.innerText = gameState.inventory.hints;
+
       const list = document.getElementById('villager-list');
       if (list) {
         list.innerHTML = "";

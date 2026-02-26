@@ -1,0 +1,3634 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Folkstown Tech Quest 3D</title>
+
+  <!-- Three.js from CDN (Required for 3D engine) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #87CEEB;
+      overflow: hidden;
+    }
+
+    #game-container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    /* ============ SCREENS ============ */
+    .screen {
+      display: none;
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 10;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* ============ 3D CANVAS LAYER ============ */
+    #game-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: linear-gradient(180deg, #87CEEB 0%, #E0F7FA 100%);
+      touch-action: none;
+    }
+
+    /* ============ UI LAYERS (DESKTOP HUD) ============ */
+    .hud-container {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    .hud-panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 3px solid #333;
+      border-radius: 12px;
+      padding: 15px;
+      box-shadow: 0 8px 0px rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
+      transition: all 0.2s ease;
+    }
+
+    .hud-panel.clickable-panel {
+      cursor: pointer;
+    }
+
+    .hud-panel.clickable-panel:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 0px rgba(0, 0, 0, 0.2);
+      border-color: #667eea;
+      background: #ffffff;
+    }
+
+    .hud-panel.clickable-panel:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0px rgba(0, 0, 0, 0.2);
+    }
+
+    .hud-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #667eea;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+    }
+
+    .hud-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #333;
+    }
+
+    .villager-status {
+      font-size: 13px;
+      margin: 4px 0;
+      padding: 6px;
+      border-radius: 6px;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .villager-status.helped {
+      color: #2e7d32;
+      background: #e8f5e9;
+      border-color: #a5d6a7;
+      font-weight: bold;
+    }
+
+    /* ============ MOBILE UI (TOP BAR) ============ */
+    .mobile-top-bar {
+      display: none;
+      /* Shown on mobile via JS/Media Query */
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 25px;
+      border: 2px solid #333;
+      z-index: 25;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      pointer-events: auto;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .mobile-score {
+      font-weight: 900;
+      color: #3498db;
+      font-size: 18px;
+    }
+
+    .mobile-score.clickable-score {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 5px 12px;
+      border-radius: 15px;
+      border: 2px solid transparent;
+    }
+
+    .mobile-score.clickable-score:hover {
+      transform: translateY(-2px);
+      border-color: #3498db;
+      background: #ffffff;
+    }
+
+    .mobile-score.clickable-score:active {
+      transform: translateY(2px);
+    }
+
+    .mobile-info-btn {
+      background: #f1c40f;
+      border: 2px solid #333;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    /* ============ INFO MODAL (MOBILE) ============ */
+    .info-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1001;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .info-modal {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      width: 85%;
+      max-height: 80%;
+      overflow-y: auto;
+      border: 4px solid #333;
+    }
+
+    /* ============ START SCREEN ============ */
+    #start-screen {
+      background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      z-index: 100;
+      color: white;
+      gap: 30px;
+    }
+
+    .game-title {
+      font-size: clamp(40px, 8vw, 80px);
+      font-weight: 900;
+      color: white;
+      text-shadow: 4px 4px 0px rgba(0, 0, 0, 0.2);
+      margin-bottom: 10px;
+    }
+
+    .game-subtitle {
+      font-size: clamp(18px, 4vw, 24px);
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px 20px;
+      border-radius: 20px;
+    }
+
+    /* ============ CHARACTER SELECT ============ */
+    #character-select-screen {
+      background: #2d3436;
+      z-index: 100;
+    }
+
+    .characters-grid {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .character-card {
+      background: white;
+      border: 4px solid #dfe6e9;
+      border-radius: 20px;
+      padding: 30px;
+      width: 220px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+      color: #333;
+      box-shadow: 0 10px 0 #b2bec3;
+    }
+
+    .character-card:hover {
+      transform: translateY(-5px);
+      border-color: #3498db;
+      box-shadow: 0 15px 0 #74b9ff;
+    }
+
+    .char-preview {
+      font-size: 60px;
+      margin-bottom: 15px;
+    }
+
+    /* ============ INTERACTION PROMPT ============ */
+    #interaction-prompt {
+      position: absolute;
+      bottom: 140px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #2d3436;
+      color: white;
+      padding: 12px 25px;
+      border-radius: 30px;
+      font-weight: bold;
+      border: 3px solid #ffeaa7;
+      display: none;
+      z-index: 50;
+      animation: bounce 1s infinite;
+      pointer-events: none;
+      box-shadow: 0 5px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes bounce {
+
+      0%,
+      100% {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      50% {
+        transform: translateX(-50%) translateY(-10px);
+      }
+    }
+
+    /* ============ MOBILE CONTROLS ============ */
+    #mobile-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 100%;
+      height: 200px;
+      pointer-events: none;
+      z-index: 80;
+      display: none;
+      touch-action: none;
+    }
+
+    .joystick-area {
+      position: absolute;
+      bottom: 40px;
+      left: 30px;
+      width: 120px;
+      height: 120px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      pointer-events: auto;
+    }
+
+    .joystick-knob {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50px;
+      height: 50px;
+      background: white;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .action-btn {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid white;
+      color: #333;
+      font-weight: bold;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      pointer-events: auto;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+
+    .action-btn:active {
+      transform: scale(0.9);
+    }
+
+    .mobile-interact-btn {
+      bottom: 40px;
+      right: 30px;
+      background: #ffeaa7;
+      width: 80px;
+      height: 80px;
+      font-size: 30px;
+    }
+
+
+
+    .mobile-run-btn {
+      bottom: 130px;
+      right: 30px;
+      background: #ff7675;
+    }
+
+    /* ============ DIALOGUE & MODALS ============ */
+    .dialogue-box {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 700px;
+      background: white;
+      border: 4px solid #333;
+      border-radius: 15px;
+      padding: 25px;
+      color: #333;
+      display: none;
+      z-index: 90;
+      box-shadow: 0 10px 0 rgba(0, 0, 0, 0.2);
+      pointer-events: auto;
+    }
+
+    .dialogue-box.active {
+      display: block;
+    }
+
+    .dialogue-speaker {
+      color: #3498db;
+      font-weight: 900;
+      font-size: 20px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dialogue-speaker::before {
+      content: '🗨️';
+      font-size: 24px;
+    }
+
+    .dialogue-text {
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .dialogue-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .dialogue-btn {
+      background: #3498db;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 16px;
+      box-shadow: 0 4px 0 #2980b9;
+    }
+
+    .dialogue-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .dialogue-btn:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    /* TASK MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      border: 4px solid #333;
+      max-width: 500px;
+      width: 90%;
+      text-align: center;
+      pointer-events: auto;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .task-option {
+      background: #f1f2f6;
+      border: 3px solid #dfe4ea;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+      font-weight: 600;
+      color: #57606f;
+    }
+
+    .task-option:hover {
+      border-color: #3498db;
+      color: #3498db;
+      transform: translateX(5px);
+    }
+
+    .task-option.correct {
+      background: #55efc4;
+      border-color: #00b894;
+      color: #006266;
+    }
+
+    .task-option.incorrect {
+      background: #ff7675;
+      border-color: #d63031;
+      color: #630000;
+    }
+
+    .btn-primary {
+      background: #00b894;
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #006266;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:active {
+      transform: translateY(6px);
+      box-shadow: none;
+    }
+
+    /* PARTS INVENTORY MODAL */
+    .parts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .part-item {
+      background: #f1f2f6;
+      border: 3px solid #dfe4ea;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .part-item.collected {
+      background: #e8f5e9;
+      border-color: #2e7d32;
+      box-shadow: 0 4px 0 #a5d6a7;
+    }
+
+    .part-item.uncollected {
+      opacity: 0.5;
+      filter: grayscale(100%);
+    }
+
+    .part-icon {
+      font-size: 40px;
+    }
+
+    .part-name {
+      font-weight: bold;
+      color: #333;
+      font-size: 14px;
+    }
+
+    /* END SCREEN */
+    #end-screen {
+      background: #81ecec;
+      color: #2d3436;
+    }
+
+    .stats-box {
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      margin: 20px 0;
+      display: inline-block;
+      min-width: 300px;
+      box-shadow: 0 10px 0 rgba(0, 0, 0, 0.1);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .hud-container {
+        display: none !important;
+      }
+
+      /* Hide large HUD on mobile */
+      .mobile-top-bar {
+        display: flex;
+      }
+
+      /* Show small HUD on mobile */
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Hidden Audio Elements -->
+  <audio id="bg-music" src="background.mp3" loop></audio>
+  <audio id="walk-sound" src="walking.mp3" loop></audio>
+  <audio id="birds-sound" src="birds.mp3" loop></audio>
+
+  <div id="game-container">
+
+    <!-- 3D Layer -->
+    <div id="game-canvas"></div>
+
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen active">
+      <div class="game-title">🏡 Folkstown Tech Quest 3D</div>
+      <div class="game-subtitle">English Learning Adventure</div>
+
+      <!-- Mission Section -->
+      <div
+        style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 15px; margin: 20px auto; max-width: 600px; box-shadow: 0 8px 20px rgba(0,0,0,0.2);">
+        <h2 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 24px;">🎯 Your Mission</h2>
+        <p style="margin: 0; color: #34495e; font-size: 16px; line-height: 1.6;">
+          Welcome to Folkstown! The residents need help with their technology problems.
+          Walk around the town, find villagers with <span style="color: #f1c40f; font-weight: bold;">glowing yellow
+            markers</span>,
+          and solve their tech-related challenges to learn essential technology vocabulary in English!
+        </p>
+        <p style="margin: 10px 0 0 0; color: #27ae60; font-weight: bold; font-size: 16px;">
+          🏆 Goal: Help all 10 villagers and master 30+ tech terms!
+        </p>
+      </div>
+
+      <!-- How to Play Section -->
+      <div
+        style="background: rgba(255,255,255,0.95); padding: 20px; border-radius: 15px; margin: 20px auto; max-width: 600px; box-shadow: 0 8px 20px rgba(0,0,0,0.2);">
+        <h2 style="margin: 0 0 15px 0; color: #2c3e50; font-size: 24px;">🎮 How to Play</h2>
+
+        <div style="text-align: left; color: #34495e; font-size: 15px;">
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #3498db;">💻 Desktop Controls:</strong><br>
+            <span style="margin-left: 20px;">• <strong>W</strong> - Move Forward</span><br>
+            <span style="margin-left: 20px;">• <strong>S</strong> - Move Backward</span><br>
+            <span style="margin-left: 20px;">• <strong>A / D</strong> - Turn Left / Right</span><br>
+            <span style="margin-left: 20px;">• <strong>SHIFT</strong> - Run</span><br>
+            <span style="margin-left: 20px;">• <strong>E</strong> - Interact with Villagers</span>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <strong style="color: #9b59b6;">📱 Mobile Controls:</strong><br>
+            <span style="margin-left: 20px;">• <strong>Joystick (Left)</strong> - Move & Turn</span><br>
+            <span style="margin-left: 20px;">• <strong>🏃 Button</strong> - Run</span><br>
+            <span style="margin-left: 20px;">• <strong>💬 Button</strong> - Interact (when near villager)</span>
+          </div>
+
+          <div style="background: #fff3cd; padding: 10px; border-radius: 8px; border-left: 4px solid #ffc107;">
+            <strong>💡 Tips:</strong><br>
+            • Look for sparkly yellow quest markers above villagers<br>
+            • Get close to villagers and press <strong>E</strong> (or 💬 on mobile)<br>
+            • Answer correctly to earn points and learn new words!<br>
+            • Collect achievements for special accomplishments
+          </div>
+        </div>
+      </div>
+      <br><br>
+      <button class="btn-primary" id="start-btn">Start Adventure</button>
+    </div>
+
+    <!-- CHARACTER SELECT -->
+    <div id="character-select-screen" class="screen">
+      <h2 style="color:white; font-size: 32px; margin-bottom:20px;">Choose Your Character</h2>
+      <div class="characters-grid" id="character-grid"></div>
+    </div>
+
+    <!-- GAME UI (HUD) -->
+    <div id="game-ui" class="screen" style="pointer-events: none; display: none;">
+
+      <!-- Desktop HUD -->
+      <div class="hud-container">
+        <div class="hud-panel clickable-panel" onclick="showPartsModal()">
+          <div class="hud-label">🖥️ Computer Parts</div>
+          <div class="hud-value" id="hud-parts" style="color: #667eea;">0/10</div>
+        </div>
+        <div class="hud-panel">
+          <div class="hud-label">Progress</div>
+          <div class="villager-list" id="villager-list"></div>
+        </div>
+        <div class="hud-panel" style="background: rgba(255,255,255,0.7)">
+          <div class="hud-label">Controls</div>
+          <div style="font-size: 12px; font-weight: 600;">Move: WASD / Arrows<br>Run: SHIFT<br>Interact: E</div>
+        </div>
+        <div class="hud-panel" style="background: rgba(255,255,255,0.7); cursor: pointer;" onclick="changeMusic()">
+          <div class="hud-label">🎵 Music</div>
+          <div style="font-size: 12px; font-weight: 600;" id="hud-music-track">Track 1</div>
+        </div>
+      </div>
+
+      <!-- Mobile HUD -->
+      <div class="mobile-top-bar">
+        <div class="mobile-score clickable-score" onclick="showPartsModal()">🖥️ Parts: <span
+            id="mobile-parts-val">0/10</span></div>
+        <div style="display: flex; gap: 8px;">
+          <div class="mobile-info-btn" onclick="changeMusic()">🎵</div>
+          <div class="mobile-info-btn" onclick="toggleInfoModal()">?</div>
+        </div>
+      </div>
+
+      <div id="interaction-prompt">PRESS [E] OR TAP 🖐️</div>
+
+      <!-- Mobile Controls -->
+      <div id="mobile-controls">
+        <div class="joystick-area" id="joystick">
+          <div class="joystick-knob" id="joystick-knob"></div>
+        </div>
+
+        <div class="action-btn mobile-run-btn" id="mobile-run-btn">👟</div>
+        <div class="action-btn mobile-interact-btn" id="mobile-interact-btn">🖐️</div>
+      </div>
+
+      <div class="dialogue-box" id="dialogue-box">
+        <div class="dialogue-speaker" id="dialogue-speaker">Name</div>
+        <div class="dialogue-text" id="dialogue-text">...</div>
+        <div class="dialogue-options" id="dialogue-options"></div>
+      </div>
+
+    </div>
+
+    <!-- INFO MODAL FOR MOBILE -->
+    <div class="info-modal-overlay" id="info-modal-overlay" onclick="toggleInfoModal()">
+      <div class="info-modal" onclick="event.stopPropagation()">
+        <h3 style="text-align:center; margin-bottom:15px;">Progress</h3>
+        <div id="mobile-villager-list"></div>
+        <div style="margin-top:20px; font-size:12px; color:#555; text-align:center;">
+          <strong>Controls:</strong><br>
+          Use Joystick to move.<br>
+          👟 to run.<br>
+          🖐️ to talk near villagers.
+        </div>
+        <button class="btn-primary" style="width:100%; margin-top:20px; padding:10px;"
+          onclick="toggleInfoModal()">Close</button>
+      </div>
+    </div>
+
+    <!-- TASK MODAL -->
+    <div class="modal-overlay" id="task-modal">
+      <div class="modal">
+        <h3 id="task-title" style="margin-bottom: 15px; font-size: 24px;">Task</h3>
+        <div id="task-content"></div>
+        <div id="task-feedback" style="margin: 15px 0; font-weight: bold;"></div>
+        <div id="task-buttons"></div>
+      </div>
+    </div>
+
+    <!-- PARTS INVENTORY MODAL -->
+    <div class="modal-overlay" id="parts-modal" onclick="closePartsModal()">
+      <div class="modal" onclick="event.stopPropagation()">
+        <h3 style="margin-bottom: 10px; font-size: 28px; color: #2c3e50;">🖥️ Computer Parts</h3>
+        <p style="color: #7f8c8d; font-size: 16px;">Help villagers to collect all the parts!</p>
+        <div class="parts-grid" id="parts-grid-container">
+          <!-- Parts injected here via JS -->
+        </div>
+        <button class="btn-primary" style="margin-top: 25px; width: 100%;" onclick="closePartsModal()">Close</button>
+      </div>
+    </div>
+
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen">
+      <div class="game-title">🎉 Quest Complete!</div>
+      <div class="game-subtitle">You helped Folkstown!</div>
+      <div class="stats-box">
+        <p>🖥️ Computer Parts: <span id="end-parts" style="font-weight:bold; color:#667eea">0</span>/10</p>
+        <p>📚 Words Learned: <span id="end-vocab" style="font-weight:bold; color:#3498db">0</span></p>
+        <div id="end-parts-list" style="margin-top:15px; font-size:28px; line-height:1.8;"></div>
+      </div>
+      <br>
+      <button class="btn-primary" onclick="location.reload()">Play Again</button>
+    </div>
+
+  </div>
+
+  <script>
+    // ============ DATA & CONFIGURATION ============
+    const VOCABULARY = {
+      balanced: { definition: "Having the right mix of different foods for good health", category: "food" },
+      nutritious: { definition: "Containing good nutrients for the body", category: "food" },
+      routine: { definition: "Something you do regularly in the same way", category: "lifestyle" },
+      tradition: { definition: "Something people do regularly because it is part of their culture", category: "culture" },
+      hospitality: { definition: "Being friendly and welcoming to guests", category: "culture" },
+      togetherness: { definition: "The feeling of being close and connected with others", category: "culture" },
+      resilience: { definition: "The ability to recover quickly from difficulties", category: "character" },
+      overwhelming: { definition: "Very great in amount or intensity", category: "character" },
+      unforgiving: { definition: "Very harsh and not allowing for any mistakes", category: "character" },
+      recall: { definition: "To bring back to mind", category: "reading" },
+      subvocalization: { definition: "Silently pronouncing words while reading", category: "reading" },
+      peripheral: { definition: "Connected with the outer edge of an area", category: "reading" },
+      fluffy: { definition: "Soft and light", category: "food" },
+      stew: { definition: "A dish of meat and vegetables cooked slowly in liquid", category: "food" },
+      texture: { definition: "The way food feels when you eat it", category: "food" },
+      independence: { definition: "Freedom from the control of another country", category: "history" },
+      courage: { definition: "The ability to face fear or difficulty", category: "character" },
+      commemorate: { definition: "To remember and honour a person or event", category: "history" },
+      boost: { definition: "To increase or improve something", category: "sports" },
+      spark: { definition: "To cause something to start or develop suddenly", category: "sports" },
+      stretch: { definition: "To make your body or limbs straight to exercise", category: "health" },
+      dim: { definition: "Not giving or having much light", category: "health" },
+      netiquette: { definition: "The rules of polite and respectful behaviour on the internet", category: "digital" },
+      persona: { definition: "The way you present yourself to others, especially online", category: "digital" },
+      interface: { definition: "The visual layout and controls for interacting with a system", category: "tech" },
+      emerging: { definition: "New and developing; starting to become known", category: "tech" },
+      anticipate: { definition: "To expect or predict something before it happens", category: "tech" }
+    };
+
+    const CHARACTERS = [
+      { id: 'ali', name: "Ali", type: 'male', color: "#e74c3c", hairColor: "#8B4513", skinColor: "#ffdbac", eyeColor: "#000000", hairStyle: 'short', hasGlasses: false, description: "Energetic student" },
+      { id: 'ayse', name: "Ayşe", type: 'female', color: "#9b59b6", hairColor: "#F4A460", skinColor: "#ffe0bd", eyeColor: "#0000FF", hairStyle: 'ponytail', hasGlasses: false, description: "Smart learner" },
+      { id: 'fatma', name: "Fatma", type: 'female', color: "#e84393", hairColor: "#d35400", skinColor: "#f1c27d", eyeColor: "#008000", hairStyle: 'long', hasGlasses: false, description: "Tech enthusiast" },
+      { id: 'mehmet', name: "Mehmet", type: 'male', color: "#34495e", hairColor: "#2c3e50", skinColor: "#e0ac69", eyeColor: "#000000", hairStyle: 'modern', hasGlasses: true, description: "Digital native" }
+    ];
+
+    const VILLAGERS = [
+      {
+        id: 1, name: "Mrs. Smith", x: -120, z: 80,
+        look: { type: 'female', color: "#f1c40f", hairColor: "#d3d3d3", skinColor: "#ffdbac", eyeColor: "#000000", hairStyle: 'bun', hasGlasses: true },
+        problem: "I'm preparing a healthy breakfast menu for the school. Can you help me with some vocabulary?",
+        tasks: [
+          { type: "multipleChoice", question: "Which word means 'having the right mix of different foods for good health'?", options: ["Filling", "Balanced", "Light"], correct: 1, explanation: "Correct! 'Balanced' means having the right mix of different foods." },
+          { type: "multipleChoice", question: "What does 'nutritious' mean?", options: ["Very expensive food", "Fast food", "Containing good nutrients for the body"], correct: 2, explanation: "Great! 'Nutritious' means containing good and useful nutrients." },
+          { type: "fillBlank", question: "I eat breakfast every day at the same time. It's part of my morning _______ .", blank: "routine", hint: "Something you do regularly in the same way", explanation: "Well done! A 'routine' is something you do regularly in the same way." }
+        ],
+        reward: 20,
+        partReward: { id: 'cpu', name: 'CPU (Processor)', icon: '🧠' }
+      },
+      {
+        id: 2, name: "Mr. Baker", x: 80, z: -120,
+        look: { type: 'male', color: "#3498db", hairColor: "#2c3e50", skinColor: "#e0ac69", eyeColor: "#0000FF", hairStyle: 'short', hasGlasses: false },
+        problem: "I'm writing about breakfast cultures around the world. Can you help with some words?",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'tradition' mean?", options: ["The introduction of new things or ideas", "Something people do regularly because it is part of their culture", "A type of food"], correct: 1, explanation: "Right! A 'tradition' is something people do regularly because of their culture." },
+          { type: "multipleChoice", question: "Which word means 'being friendly and welcoming to guests'?", options: ["Variety", "Comfort", "Hospitality"], correct: 2, explanation: "Excellent! 'Hospitality' means being friendly and welcoming to guests." },
+          { type: "multipleChoice", question: "What does 'togetherness' mean?", options: ["The feeling of being close and connected with others", "Being alone", "Caring only about yourself"], correct: 0, explanation: "Perfect! 'Togetherness' is the feeling of being close and connected with others." }
+        ],
+        reward: 20,
+        partReward: { id: 'gpu', name: 'GPU (Graphics Card)', icon: '🎮' }
+      },
+      {
+        id: 3, name: "Aunt Sarah", x: -80, z: -120,
+        look: { type: 'female', color: "#e67e22", hairColor: "#8B4513", skinColor: "#8d5524", eyeColor: "#000000", hairStyle: 'long', hasGlasses: false },
+        problem: "I just finished reading an amazing survival book! Do you know these words?",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'resilience' mean?", options: ["Being very tired", "The ability to stay calm and accept a delay", "The ability to recover quickly from difficulties"], correct: 2, explanation: "Great! 'Resilience' is the ability to recover quickly from difficulties." },
+          { type: "fillBlank", question: "The situation was very difficult and _______ — extremely hard to handle.", blank: "overwhelming", hint: "Very great in amount or intensity", explanation: "Correct! 'Overwhelming' means very great in intensity and extremely difficult to handle." },
+          { type: "multipleChoice", question: "What does 'unforgiving' mean when talking about a place or environment?", options: ["Very harsh and not allowing for any mistakes", "Not wanting to know about something", "Full of forgiveness"], correct: 0, explanation: "Well done! An 'unforgiving' environment is very harsh and doesn't allow mistakes." }
+        ],
+        reward: 20,
+        partReward: { id: 'ram', name: 'RAM (Memory)', icon: '💾' }
+      },
+      {
+        id: 4, name: "Librarian Joe", x: 120, z: 80,
+        look: { type: 'male', color: "#9b59b6", hairColor: "#000000", skinColor: "#c68642", eyeColor: "#000000", hairStyle: 'short', hasGlasses: true },
+        problem: "I'm teaching students speed reading techniques. Can you help with some terms?",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'recall' mean?", options: ["To forget everything", "To write down", "To bring back to mind"], correct: 2, explanation: "Super! 'Recall' means to bring back to mind." },
+          { type: "multipleChoice", question: "What is 'subvocalization'?", options: ["The act of inaudibly articulating speech with speech organs", "The act of making sounds in speech or music", "Speaking very loudly"], correct: 0, explanation: "Correct! 'Subvocalization' is silently pronouncing words while reading." },
+          { type: "multipleChoice", question: "What does 'peripheral' mean?", options: ["In the center", "Connected with the outer edge of an area", "Better in quality than something else"], correct: 1, explanation: "Great job! 'Peripheral' means connected with the outer edge of an area." }
+        ],
+        reward: 20,
+        partReward: { id: 'motherboard', name: 'Motherboard', icon: '🔌' }
+      },
+      {
+        id: 5, name: "Young Tim", x: -350, z: -100,
+        look: { type: 'male', color: "#2ecc71", hairColor: "#e67e22", skinColor: "#ffe0bd", eyeColor: "#0000FF", hairStyle: 'short', hasGlasses: false },
+        problem: "I'm learning about Viennese food culture. Do you know these food words?",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'fluffy' mean when talking about food?", options: ["Soft and light", "Hard and crunchy", "Very salty"], correct: 0, explanation: "Perfect! 'Fluffy' means soft and light." },
+          { type: "multipleChoice", question: "What is a 'stew'?", options: ["Small balls formed from chickpeas", "Chicken served with rice cooked in chicken stock", "A dish of meat and vegetables cooked slowly in liquid"], correct: 2, explanation: "Correct! A 'stew' is meat and vegetables cooked slowly in liquid." },
+          { type: "fillBlank", question: "The cake had a very soft and smooth _______ .", blank: "texture", hint: "The way food feels when you eat it", explanation: "Well done! 'Texture' is the way food or a surface feels when you touch or eat it." }
+        ],
+        reward: 20,
+        partReward: { id: 'storage', name: 'Storage (SSD)', icon: '💿' }
+      },
+      {
+        id: 6, name: "Ms. Chen", x: 350, z: -100,
+        look: { type: 'female', color: "#e74c3c", hairColor: "#000000", skinColor: "#f1c27d", eyeColor: "#000000", hairStyle: 'ponytail', hasGlasses: true },
+        problem: "We're preparing for the 19 May celebrations. Can you help with some important words?",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'independence' mean?", options: ["A system of government with one person in complete power", "Freedom from the control of another country", "Being dependent on others"], correct: 1, explanation: "Excellent! 'Independence' means freedom from the control of another country." },
+          { type: "fillBlank", question: "Atatürk showed great _______ by facing fear and difficulty bravely.", blank: "courage", hint: "The ability to face fear or difficulty", explanation: "Great! 'Courage' is the ability to face fear or difficulty." },
+          { type: "multipleChoice", question: "What does 'commemorate' mean?", options: ["To remember and honour a person or event", "To say what you do not like about something", "To celebrate a birthday"], correct: 0, explanation: "Perfect! 'Commemorate' means to remember and honour a person or event." }
+        ],
+        reward: 20,
+        partReward: { id: 'psu', name: 'Power Supply', icon: '⚡' }
+      },
+      {
+        id: 7, name: "Coach Mike", x: 350, z: 300,
+        look: { type: 'male', color: "#16a085", hairColor: "#34495e", skinColor: "#e0ac69", eyeColor: "#008000", hairStyle: 'short', hasGlasses: false },
+        problem: "I'm coaching the school team. Let me test your sports vocabulary!",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'boost' mean?", options: ["To control or limit something", "To make something seem larger than it really is", "To increase or improve something"], correct: 2, explanation: "Great! 'Boost' means to increase or improve something." },
+          { type: "multipleChoice", question: "What is 'self-control'?", options: ["The ability to control your emotions and actions", "A remote control device", "Having learned something by reading books"], correct: 0, explanation: "Correct! 'Self-control' is the ability to control your emotions and actions." },
+          { type: "multipleChoice", question: "What does 'spark' mean?", options: ["To prevent something from happening", "To cause something to start or develop suddenly", "To give something to somebody"], correct: 1, explanation: "Well done! 'Spark' means to cause something to start or develop suddenly." }
+        ],
+        reward: 20,
+        partReward: { id: 'case', name: 'Computer Case', icon: '📦' }
+      },
+      {
+        id: 8, name: "Grandma Rose", x: -350, z: 300,
+        look: { type: 'female', color: "#fd79a8", hairColor: "#ecf0f1", skinColor: "#ffdbac", eyeColor: "#0000FF", hairStyle: 'short', hasGlasses: true },
+        problem: "I want to stay healthy. Can you help me learn some health vocabulary?",
+        tasks: [
+          { type: "multipleChoice", question: "What does 'hospitality' mean?", options: ["Being unpolite to guests", "Being friendly and welcoming to guests", "Being jealous of guests"], correct: 1, explanation: "Correct! 'Hospitality' means being friendly and welcoming to guests." },
+          { type: "multipleChoice", question: "What does 'stretch' mean?", options: ["To eat a meal", "To become calmer and less worried", "To make your body or limbs straight to exercise"], correct: 2, explanation: "Great! 'Stretch' means to make your body straight to exercise the joints." },
+          { type: "fillBlank", question: "Please turn off the bright lights. I prefer _______ lighting for sleeping.", blank: "dim", hint: "Not giving or having much light", explanation: "Perfect! 'Dim' means not giving or having much light." }
+        ],
+        reward: 20,
+        partReward: { id: 'monitor', name: 'Monitor', icon: '🖥️' }
+      },
+      {
+        id: 9, name: "Dr. Patel", x: 80, z: 300,
+        look: { type: 'male', color: "#6c5ce7", hairColor: "#2d3436", skinColor: "#c68642", eyeColor: "#000000", hairStyle: 'modern', hasGlasses: true },
+        problem: "I'm teaching digital citizenship to students. Can you help with these terms?",
+        tasks: [
+          { type: "multipleChoice", question: "What is a 'digital footprint'?", options: ["The information about you on the internet from your online activities", "A footprint on a digital screen", "A measure of the amount of carbon dioxide from activities"], correct: 0, explanation: "Correct! A 'digital footprint' is the information about you from online activities." },
+          { type: "multipleChoice", question: "What does 'netiquette' mean?", options: ["A type of website", "The formal rules of correct behaviour in society", "The rules of polite and respectful behaviour on the internet"], correct: 2, explanation: "Great! 'Netiquette' is the rules of polite behaviour on the internet." },
+          { type: "multipleChoice", question: "What does 'persona' mean?", options: ["A personal computer", "The way you present yourself to others, especially online", "The state of being alone and not watched by other people"], correct: 1, explanation: "Well done! A 'persona' is the way you present yourself to others." }
+        ],
+        reward: 20,
+        partReward: { id: 'keyboard_part', name: 'Keyboard', icon: '⌨️' }
+      },
+      {
+        id: 10, name: "Artist Luna", x: -80, z: 300,
+        look: { type: 'female', color: "#a29bfe", hairColor: "#e84393", skinColor: "#ffe0bd", eyeColor: "#9b59b6", hairStyle: 'long', hasGlasses: false },
+        problem: "I'm designing an app and learning tech vocabulary. Can you help?",
+        tasks: [
+          { type: "multipleChoice", question: "What is an 'interface'?", options: ["The practical use of something, especially a theory", "The visual layout and controls for interacting with a system", "The act of communicating with somebody"], correct: 1, explanation: "Excellent! An 'interface' is the visual layout and controls for interacting with a system." },
+          { type: "multipleChoice", question: "What does 'emerging' mean?", options: ["New and developing; starting to become known", "Something that is going to happen very soon", "Disappearing completely"], correct: 0, explanation: "Correct! 'Emerging' means new and developing, starting to become important." },
+          { type: "multipleChoice", question: "What does 'anticipate' mean?", options: ["To make it possible for somebody to do something", "To talk about something in order to decide something", "To expect or predict something before it happens"], correct: 2, explanation: "Great job! 'Anticipate' means to expect or predict something before it happens." }
+        ],
+        reward: 20,
+        partReward: { id: 'mouse_part', name: 'Mouse', icon: '🖱️' }
+      }
+    ];
+
+
+    // ============ GAME STATE & THREE JS GLOBALS ============
+    let gameState = {
+      villagersHelped: new Set(),
+      vocabularyLearned: new Set(),
+      achievements: new Set(),
+      collectedParts: [], // Computer parts collected from NPCs
+      isInputActive: false,
+      selectedCharacter: null,
+      mobileMove: { x: 0, y: 0 },
+      isMobile: false,
+      mobileRunPressed: false,
+      isRunning: false,
+      startTime: 0,
+      perfectScore: true,
+      wrongAttempts: 0,
+      villagerTaskProgress: {} // tracks current question index per villager
+    };
+
+    function getCurrentTask(villager) {
+      const idx = gameState.villagerTaskProgress[villager.id] || 0;
+      return villager.tasks[idx];
+    }
+
+
+    // Music tracks
+    const MUSIC_TRACKS = ['background.mp3', 'background2.mp3', 'background3.mp3', 'background4.mp3'];
+    const MUSIC_TRACK_NAMES = ['Track 1', 'Track 2', 'Track 3', 'Track 4'];
+    let currentTrackIndex = 0;
+
+    // Movement Speeds
+    const WALK_SPEED = 150;
+    const RUN_SPEED = 280;
+
+    // Sound effects (using Web Audio API for simple tones)
+    function playSuccessSound() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.frequency.value = 523.25; // C5
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function playErrorSound() {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.frequency.value = 200; // Lower tone
+      oscillator.type = 'sawtooth';
+      gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function checkAchievements() {
+      // First Helper
+      if (gameState.villagersHelped.size === 1 && !gameState.achievements.has('first')) {
+        gameState.achievements.add('first');
+        showAchievement('🌟 First Helper', 'You helped your first villager!');
+      }
+
+      // Perfect Score
+      if (gameState.villagersHelped.size === VILLAGERS.length && gameState.perfectScore) {
+        if (!gameState.achievements.has('perfect')) {
+          gameState.achievements.add('perfect');
+          showAchievement('💯 Perfect!', 'No mistakes!');
+        }
+      }
+
+      // Speed Runner (under 5 minutes)
+      if (gameState.villagersHelped.size === VILLAGERS.length) {
+        const timeElapsed = (Date.now() - gameState.startTime) / 1000;
+        if (timeElapsed < 300 && !gameState.achievements.has('speed')) {
+          gameState.achievements.add('speed');
+          showAchievement('⚡ Speed Runner', 'Finished in under 5 minutes!');
+        }
+      }
+
+      // Vocabulary Master
+      if (gameState.vocabularyLearned.size >= 20 && !gameState.achievements.has('vocab')) {
+        gameState.achievements.add('vocab');
+        showAchievement('📚 Vocabulary Master', 'Learned 20+ words!');
+      }
+    }
+
+    function showAchievement(title, desc) {
+      const div = document.createElement('div');
+      div.style.cssText = `
+            position: fixed;
+            top: 100px;
+            right: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 9999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: slideIn 0.5s ease;
+        `;
+      div.innerHTML = `
+            <div style="font-size: 20px; margin-bottom: 5px;">${title}</div>
+            <div style="font-size: 14px; opacity: 0.9;">${desc}</div>
+        `;
+      document.body.appendChild(div);
+      playSuccessSound();
+      setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transition = 'opacity 0.5s';
+        setTimeout(() => div.remove(), 500);
+      }, 3000);
+    }
+
+    // Three.js Variables
+    let scene, camera, renderer;
+    let playerMesh, playerGroup;
+    let villagerMeshes = [];
+    let buildings = [];
+    let cars = [];
+    let clock = new THREE.Clock();
+
+    // Audio Objects
+    let bgMusic, walkSound, birdSound;
+    let isWalking = false;
+
+    // Input
+    const keysPressed = {};
+
+    // ============ GLOBAL FUNCTIONS ============
+    window.goToCharacterSelect = function () {
+      // Start Audio Context on user interaction
+      initAudio();
+
+      document.getElementById('start-screen').classList.remove('active');
+      document.getElementById('character-select-screen').classList.add('active');
+    };
+
+    window.toggleInfoModal = function () {
+      const el = document.getElementById('info-modal-overlay');
+      if (el.style.display === 'flex') el.style.display = 'none';
+      else el.style.display = 'flex';
+    };
+
+    window.showPartsModal = function () {
+      const modal = document.getElementById('parts-modal');
+      const grid = document.getElementById('parts-grid-container');
+
+      // Clear current grid
+      grid.innerHTML = '';
+
+      // Populate with all possible parts from VILLAGERS array
+      VILLAGERS.forEach(v => {
+        if (!v.partReward) return;
+
+        const part = v.partReward;
+        const isCollected = gameState.collectedParts.includes(part.id);
+
+        const div = document.createElement('div');
+        div.className = `part-item ${isCollected ? 'collected' : 'uncollected'}`;
+
+        div.innerHTML = `
+          <div class="part-icon">${part.icon}</div>
+          <div class="part-name">${part.name}</div>
+          <div style="font-size: 12px; color: ${isCollected ? '#2e7d32' : '#7f8c8d'}; font-weight: bold;">
+            ${isCollected ? '✓ Collected' : 'Locked'}
+          </div>
+        `;
+
+        grid.appendChild(div);
+      });
+
+      modal.style.display = 'flex';
+    };
+
+    window.closePartsModal = function () {
+      const modal = document.getElementById('parts-modal');
+      modal.style.display = 'none';
+    };
+
+    function showPurchaseFeedback(message, success) {
+      const feedback = document.createElement('div');
+      feedback.style.cssText = `
+        position: fixed;
+        top: 50 %;
+        left: 50 %;
+        transform: translate(-50 %, -50 %);
+        background: ${success ? '#2ecc71' : '#e74c3c'};
+        color: white;
+        padding: 20px 40px;
+        border - radius: 15px;
+        font - weight: bold;
+        font - size: 20px;
+        z - index: 10000;
+        box - shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        animation: popIn 0.3s ease;
+        `;
+      feedback.textContent = message;
+      document.body.appendChild(feedback);
+      setTimeout(() => {
+        feedback.style.opacity = '0';
+        feedback.style.transition = 'opacity 0.3s';
+        setTimeout(() => feedback.remove(), 300);
+      }, 1500);
+    }
+
+    function initAudio() {
+      bgMusic = document.getElementById('bg-music');
+      walkSound = document.getElementById('walk-sound');
+      birdSound = document.getElementById('birds-sound');
+
+      // Play ambient sounds
+      bgMusic.volume = 0.3;
+      birdSound.volume = 0.4;
+      walkSound.volume = 0.5;
+
+      bgMusic.play().catch(e => console.log("Audio play blocked", e));
+      birdSound.play().catch(e => console.log("Audio play blocked", e));
+    }
+
+    window.changeMusic = function () {
+      currentTrackIndex = (currentTrackIndex + 1) % MUSIC_TRACKS.length;
+      if (bgMusic) {
+        bgMusic.src = MUSIC_TRACKS[currentTrackIndex];
+        bgMusic.play().catch(e => console.log("Audio play blocked", e));
+      }
+      // Update UI labels
+      const trackLabel = MUSIC_TRACK_NAMES[currentTrackIndex];
+      const hudEl = document.getElementById('hud-music-track');
+      if (hudEl) hudEl.innerText = trackLabel;
+    };
+
+    // ============ INITIALIZATION ============
+
+    function initApp() {
+      if (typeof THREE === 'undefined') {
+        alert("Error: 3D Engine failed to load. Please reload.");
+        return;
+      }
+
+      setupCharacterSelect();
+
+      const startBtn = document.getElementById('start-btn');
+      if (startBtn) {
+        startBtn.addEventListener('click', window.goToCharacterSelect);
+      }
+
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        gameState.isMobile = true;
+        document.getElementById('mobile-controls').style.display = 'block';
+        document.querySelector('.mobile-top-bar').style.display = 'flex';
+        setupMobileControls();
+      }
+    }
+
+    function setupCharacterSelect() {
+      const grid = document.getElementById("character-grid");
+      if (!grid) return;
+
+      grid.innerHTML = "";
+      CHARACTERS.forEach(char => {
+        const div = document.createElement('div');
+        div.className = 'character-card';
+        // Icon logic based on ID
+        const icon = (char.type === 'male') ? '👦' : '👧';
+
+        div.innerHTML = `
+          <div class="char-preview" style="color:${char.color}">${icon}</div>
+          <h3>${char.name}</h3>
+          <p>${char.description}</p>
+        `;
+        div.onclick = () => startGame(char);
+        grid.appendChild(div);
+      });
+    }
+
+    function startGame(character) {
+      gameState.selectedCharacter = character;
+      gameState.startTime = Date.now();
+
+      document.getElementById('start-screen').classList.remove('active');
+      document.getElementById('character-select-screen').classList.remove('active');
+      document.getElementById('game-ui').style.display = 'block';
+
+      updateHUD();
+      init3DWorld();
+      animate3D();
+
+      gameState.isInputActive = true;
+    }
+
+    // ============ THREE.JS ENGINE ============
+
+    function init3DWorld() {
+      const canvasContainer = document.getElementById('game-canvas');
+      if (!canvasContainer) return;
+
+      scene = new THREE.Scene();
+
+      // Enhanced Sky - Gradient skybox
+      const skyGradient = new THREE.Color(0x87CEEB);
+      scene.background = skyGradient;
+      scene.fog = new THREE.Fog(0xE0F7FA, 500, 1500);
+
+      const aspect = window.innerWidth / window.innerHeight;
+      camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 2000);
+      camera.position.set(0, 80, 140);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
+
+      canvasContainer.innerHTML = '';
+      canvasContainer.appendChild(renderer.domElement);
+
+      // Enhanced Lighting System
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+
+      // Main directional light (sun)
+      const dirLight = new THREE.DirectionalLight(0xfff4e6, 1.0);
+      dirLight.position.set(200, 400, 200);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 0.5;
+      dirLight.shadow.camera.far = 1500;
+      const d = 800;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      // Additional fill light for depth
+      const fillLight = new THREE.DirectionalLight(0x8EC5FC, 0.3);
+      fillLight.position.set(-200, 100, -200);
+      scene.add(fillLight);
+
+      // Enhanced Ground with texture variation
+      const groundGeo = new THREE.PlaneGeometry(3000, 3000, 50, 50);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x55efc4,
+        roughness: 0.8,
+        metalness: 0.1
+      });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      // Paths
+      createRoad(0, 0, 800, 60, false);
+      createRoad(0, 0, 60, 600, true);
+
+      // Cars (Parked) - Detailed realistic cars
+      function createDetailedCar(x, z, rotation, color) {
+        const carGroup = new THREE.Group();
+
+        // Car body (main)
+        const bodyGeo = new THREE.BoxGeometry(20, 8, 40);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: color,
+          metalness: 0.7,
+          roughness: 0.3
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 8;
+        body.castShadow = true;
+        carGroup.add(body);
+
+        // Car cabin (top)
+        const cabinGeo = new THREE.BoxGeometry(18, 7, 24);
+        const cabin = new THREE.Mesh(cabinGeo, bodyMat);
+        cabin.position.set(0, 15.5, -2);
+        cabin.castShadow = true;
+        carGroup.add(cabin);
+
+        // Windows (transparent)
+        const windowMat = new THREE.MeshStandardMaterial({
+          color: 0x87CEEB,
+          transparent: true,
+          opacity: 0.4,
+          metalness: 0.9,
+          roughness: 0.1
+        });
+
+        // Front windshield
+        const windshieldGeo = new THREE.BoxGeometry(18.5, 6, 1);
+        const windshield = new THREE.Mesh(windshieldGeo, windowMat);
+        windshield.position.set(0, 15.5, 10);
+        windshield.rotation.x = -0.2;
+        carGroup.add(windshield);
+
+        // Side windows
+        const sideWindowGeo = new THREE.BoxGeometry(1, 5, 20);
+        const leftWindow = new THREE.Mesh(sideWindowGeo, windowMat);
+        leftWindow.position.set(-9, 15.5, -2);
+        carGroup.add(leftWindow);
+        const rightWindow = new THREE.Mesh(sideWindowGeo, windowMat);
+        rightWindow.position.set(9, 15.5, -2);
+        carGroup.add(rightWindow);
+
+        // Wheels
+        const wheelGeo = new THREE.CylinderGeometry(4, 4, 3, 16);
+        const wheelMat = new THREE.MeshStandardMaterial({
+          color: 0x222222,
+          roughness: 0.8
+        });
+
+        const wheelPositions = [
+          [-8, 4, 12],  // Front left
+          [8, 4, 12],   // Front right
+          [-8, 4, -12], // Back left
+          [8, 4, -12]   // Back right
+        ];
+
+        wheelPositions.forEach(pos => {
+          const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+          wheel.rotation.z = Math.PI / 2;
+          wheel.position.set(...pos);
+          wheel.castShadow = true;
+          carGroup.add(wheel);
+
+          // Hubcaps
+          const hubGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
+          const hubMat = new THREE.MeshStandardMaterial({
+            color: 0xcccccc,
+            metalness: 0.9,
+            roughness: 0.2
+          });
+          const hub = new THREE.Mesh(hubGeo, hubMat);
+          hub.rotation.z = Math.PI / 2;
+          hub.position.set(pos[0], pos[1], pos[2]);
+          carGroup.add(hub);
+        });
+
+        // Headlights
+        const headlightGeo = new THREE.BoxGeometry(4, 2.5, 1);
+        const headlightMat = new THREE.MeshStandardMaterial({
+          color: 0xffffaa,
+          emissive: 0xffffaa,
+          emissiveIntensity: 0.5
+        });
+        const leftHeadlight = new THREE.Mesh(headlightGeo, headlightMat);
+        leftHeadlight.position.set(-6, 8, 20.5);
+        carGroup.add(leftHeadlight);
+        const rightHeadlight = new THREE.Mesh(headlightGeo, headlightMat);
+        rightHeadlight.position.set(6, 8, 20.5);
+        carGroup.add(rightHeadlight);
+
+        // Taillights
+        const taillightMat = new THREE.MeshStandardMaterial({
+          color: 0xff0000,
+          emissive: 0xff0000,
+          emissiveIntensity: 0.3
+        });
+        const leftTaillight = new THREE.Mesh(headlightGeo, taillightMat);
+        leftTaillight.position.set(-6, 8, -20.5);
+        carGroup.add(leftTaillight);
+        const rightTaillight = new THREE.Mesh(headlightGeo, taillightMat);
+        rightTaillight.position.set(6, 8, -20.5);
+        carGroup.add(rightTaillight);
+
+        // Bumpers
+        const bumperGeo = new THREE.BoxGeometry(22, 2, 3);
+        const bumperMat = new THREE.MeshStandardMaterial({
+          color: 0x333333,
+          metalness: 0.6,
+          roughness: 0.4
+        });
+        const frontBumper = new THREE.Mesh(bumperGeo, bumperMat);
+        frontBumper.position.set(0, 5, 21.5);
+        frontBumper.castShadow = true;
+        carGroup.add(frontBumper);
+        const backBumper = new THREE.Mesh(bumperGeo, bumperMat);
+        backBumper.position.set(0, 5, -21.5);
+        backBumper.castShadow = true;
+        carGroup.add(backBumper);
+
+        carGroup.position.set(x, 0, z);
+        carGroup.rotation.y = rotation;
+        scene.add(carGroup);
+
+        cars.push({ x, z, w: 25, d: 45 }); // Only cars should block movement
+      }
+
+      // Create 4 parked cars
+      createDetailedCar(-60, -60, Math.PI / 4, 0xe74c3c);    // Red car
+      createDetailedCar(60, -60, -Math.PI / 4, 0x3498db);      // Blue car
+      createDetailedCar(-60, 60, 3 * Math.PI / 4, 0x2ecc71);   // Green car
+      createDetailedCar(60, 60, -3 * Math.PI / 4, 0xf39c12);   // Orange car
+
+      // Vegetation
+      createGrass(1500);
+      createFlowers(60);
+
+      // Living World
+      createAnimals();
+      createProps();
+      // Perimeter Fence
+      createPerimeterFence();
+
+      // Add ambient particles for atmosphere
+      createAmbientParticles();
+
+      // Add clouds to sky
+      createClouds();
+
+      // Player
+      createPlayer(gameState.selectedCharacter);
+
+      // Villagers
+      VILLAGERS.forEach(v => createVillager(v));
+
+      // Add streetlights with point lights
+      // createStreetLights(); // REMOVED: Street lamps causing navigation issues
+
+      // Buildings
+      // School (Red Brick)
+      createSpecificBuilding(-200, -200, 220, 90, 140, 0xd63031, 'school');
+
+      // Bust & Flag (Relocated to prevent overlap)
+      createBust(-250, -120);
+      createFlag(-200, -120); // Flag in front of school
+
+      // Library (Modern Blue)
+      createSpecificBuilding(250, -200, 180, 70, 100, 0x0984e3, 'library');
+
+      // Shop (Yellow)
+      createSpecificBuilding(200, 150, 100, 60, 100, 0xfdcb6e, 'shop');
+
+      // Detailed Mosque with Islamic Architecture
+      function createMosque(x, z) {
+        const group = new THREE.Group();
+
+        // Main prayer hall
+        const hallW = 120;
+        const hallH = 80;
+        const hallD = 100;
+        const hallGeo = new THREE.BoxGeometry(hallW, hallH, hallD);
+        const hallMat = new THREE.MeshStandardMaterial({
+          color: 0xf5f5dc, // Beige/cream
+          roughness: 0.8,
+          metalness: 0.1
+        });
+        const hall = new THREE.Mesh(hallGeo, hallMat);
+        hall.position.y = hallH / 2;
+        hall.castShadow = true;
+        hall.receiveShadow = true;
+        group.add(hall);
+
+        // Decorative horizontal bands
+        for (let i = 20; i < hallH; i += 20) {
+          const band = new THREE.Mesh(
+            new THREE.BoxGeometry(hallW + 2, 3, hallD + 2),
+            new THREE.MeshStandardMaterial({ color: 0x8b4513, roughness: 0.6 })
+          );
+          band.position.y = i;
+          group.add(band);
+        }
+
+        // Main dome (bulbous Islamic style)
+        const domeRadius = 50;
+        const domeGeo = new THREE.SphereGeometry(domeRadius, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const domeMat = new THREE.MeshStandardMaterial({
+          color: 0x4a90a4, // Turquoise/teal
+          roughness: 0.3,
+          metalness: 0.4
+        });
+        const dome = new THREE.Mesh(domeGeo, domeMat);
+        dome.position.y = hallH; // Flush with wall top
+        dome.castShadow = true;
+        group.add(dome);
+
+        // Dome ribs (geometric pattern)
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          const rib = new THREE.Mesh(
+            new THREE.BoxGeometry(2, domeRadius, 2),
+            new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9 })
+          );
+          const radius = domeRadius * 0.7;
+          rib.position.set(
+            Math.cos(angle) * radius,
+            hallH + domeRadius / 2,
+            Math.sin(angle) * radius
+          );
+          rib.rotation.z = Math.atan2(radius, domeRadius);
+          rib.rotation.y = angle;
+          group.add(rib);
+        }
+
+        // Crescent moon on top of dome
+        const crescentGroup = new THREE.Group();
+        const torusGeo = new THREE.TorusGeometry(8, 1.5, 8, 16, Math.PI * 1.3);
+        const crescentMat = new THREE.MeshStandardMaterial({
+          color: 0xffd700,
+          metalness: 0.9,
+          roughness: 0.1,
+          emissive: 0xffa500,
+          emissiveIntensity: 0.3
+        });
+        const crescent = new THREE.Mesh(torusGeo, crescentMat);
+        crescent.rotation.x = -Math.PI / 4;
+        crescent.rotation.z = -Math.PI / 6;
+        crescentGroup.add(crescent);
+
+        // Star next to crescent
+        const starGeo = new THREE.SphereGeometry(2, 5, 5);
+        const star = new THREE.Mesh(starGeo, crescentMat);
+        star.position.set(6, 2, 0);
+        crescentGroup.add(star);
+
+        crescentGroup.position.y = hallH + domeRadius + 8;
+        group.add(crescentGroup);
+
+        //Minaret (tower for call to prayer)
+        const minaretX = hallW / 2 + 10;
+        const minaretZ = hallD / 2 - 20;
+
+        // Minaret base
+        const mBaseGeo = new THREE.CylinderGeometry(12, 14, 20, 16);
+        const mBase = new THREE.Mesh(mBaseGeo, hallMat);
+        mBase.position.set(minaretX, 10, minaretZ);
+        mBase.castShadow = true;
+        group.add(mBase);
+
+        // Minaret shaft
+        const mShaftGeo = new THREE.CylinderGeometry(10, 11, 80, 16);
+        const mShaft = new THREE.Mesh(mShaftGeo, hallMat);
+        mShaft.position.set(minaretX, 60, minaretZ);
+        mShaft.castShadow = true;
+        group.add(mShaft);
+
+        // Minaret balcony (for call to prayer)
+        const mBalconyGeo = new THREE.CylinderGeometry(16, 12, 8, 16);
+        const mBalcony = new THREE.Mesh(mBalconyGeo, new THREE.MeshStandardMaterial({ color: 0x8b4513 }));
+        mBalcony.position.set(minaretX, 102, minaretZ);
+        mBalcony.castShadow = true;
+        group.add(mBalcony);
+
+        // Minaret railing
+        for (let i = 0; i < 16; i++) {
+          const angle = (i / 16) * Math.PI * 2;
+          const rail = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.5, 0.5, 6, 8),
+            new THREE.MeshStandardMaterial({ color: 0x333333 })
+          );
+          rail.position.set(
+            minaretX + Math.cos(angle) * 14,
+            105,
+            minaretZ + Math.sin(angle) * 14
+          );
+          group.add(rail);
+        }
+
+        // Minaret spire
+        const mSpireGeo = new THREE.CylinderGeometry(8, 10, 20, 16);
+        const mSpire = new THREE.Mesh(mSpireGeo, hallMat);
+        mSpire.position.set(minaretX, 116, minaretZ);
+        mSpire.castShadow = true;
+        group.add(mSpire);
+
+        // Minaret cap
+        const mCapGeo = new THREE.ConeGeometry(10, 25, 16);
+        const mCapMat = new THREE.MeshStandardMaterial({ color: 0x4a90a4, roughness: 0.3, metalness: 0.4 });
+        const mCap = new THREE.Mesh(mCapGeo, mCapMat);
+        mCap.position.set(minaretX, 138, minaretZ);
+        mCap.castShadow = true;
+        group.add(mCap);
+
+        // Crescent on minaret
+        const mCrescent = crescent.clone();
+        mCrescent.scale.set(0.5, 0.5, 0.5);
+        mCrescent.position.set(minaretX, 152, minaretZ);
+        mCrescent.rotation.x = 0;
+        group.add(mCrescent);
+
+        // Arched entrance
+        const archW = 35;
+        const archH = 60;
+        const archGeo = new THREE.BoxGeometry(archW, archH, 8);
+        const archMat = new THREE.MeshStandardMaterial({ color: 0x8b4513 });
+        const arch = new THREE.Mesh(archGeo, archMat);
+        arch.position.set(0, archH / 2, hallD / 2 + 4);
+        group.add(arch);
+
+        // Arch top (semi-circular)
+        const archTopGeo = new THREE.CylinderGeometry(archW / 2, archW / 2, 8, 16, 1, false, 0, Math.PI);
+        const archTop = new THREE.Mesh(archTopGeo, archMat);
+        archTop.rotation.z = Math.PI / 2;
+        archTop.position.set(0, archH, hallD / 2 + 4);
+        group.add(archTop);
+
+        // Door inside arch
+        const doorGeo = new THREE.BoxGeometry(archW - 4, archH - 8, 2);
+        const doorMat = new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.7 });
+        const door = new THREE.Mesh(doorGeo, doorMat);
+        door.position.set(0, (archH - 8) / 2 + 4, hallD / 2 + 5);
+        door.castShadow = true;
+        group.add(door);
+
+        // Door decorative panels (Islamic geometric)
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 2; j++) {
+            const panelGeo = new THREE.BoxGeometry(8, 8, 0.5);
+            const panel = new THREE.Mesh(panelGeo, new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8 }));
+            panel.position.set(
+              (j - 0.5) * 12,
+              15 + i * 12,
+              hallD / 2 + 6
+            );
+            panel.rotation.z = Math.PI / 4;
+            group.add(panel);
+          }
+        }
+
+        // Arched windows (Islamic style)
+        const windowPositions = [
+          // Front facade
+          [-40, hallH * 0.6, hallD / 2],
+          [40, hallH * 0.6, hallD / 2],
+          // Side walls
+          [-hallW / 2, hallH * 0.6, -20],
+          [-hallW / 2, hallH * 0.6, 20],
+          [hallW / 2, hallH * 0.6, -20],
+          [hallW / 2, hallH * 0.6, 20],
+          // Back wall
+          [-30, hallH * 0.6, -hallD / 2],
+          [30, hallH * 0.6, -hallD / 2]
+        ];
+
+        windowPositions.forEach(pos => {
+          // Window arch
+          const winArchGeo = new THREE.BoxGeometry(15, 25, 3);
+          const winArch = new THREE.Mesh(winArchGeo, new THREE.MeshStandardMaterial({ color: 0x654321 }));
+          winArch.position.set(...pos);
+          group.add(winArch);
+
+          // Arched top
+          const winTopGeo = new THREE.CylinderGeometry(7.5, 7.5, 3, 12, 1, false, 0, Math.PI);
+          const winTop = new THREE.Mesh(winTopGeo, new THREE.MeshStandardMaterial({ color: 0x654321 }));
+          winTop.rotation.z = Math.PI / 2;
+          winTop.position.set(pos[0], pos[1] + 12.5, pos[2]);
+          group.add(winTop);
+
+          // Stained glass
+          const glassGeo = new THREE.BoxGeometry(12, 20, 2);
+          const glassMat = new THREE.MeshStandardMaterial({
+            color: 0x00bfff,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0x4169e1,
+            emissiveIntensity: 0.3
+          });
+          const glass = new THREE.Mesh(glassGeo, glassMat);
+          glass.position.set(pos[0], pos[1], pos[2]);
+          group.add(glass);
+        });
+
+        group.position.set(x, 0, z);
+        scene.add(group);
+        buildings.push({ x, z, w: 140, d: 120 });
+      }
+
+      // Mosque (White)
+      createMosque(-250, 100);
+
+      // Trees
+      createTree(-350, 50);
+      createTree(-300, -100);
+      createTree(350, 50);
+      createTree(300, 250);
+      createTree(-100, 250);
+      createTree(100, 350);
+      createTree(-100, -350);
+
+      window.addEventListener('resize', onWindowResize, false);
+      setupControls();
+    }
+
+    // ============ VISUAL EFFECTS ============
+
+    function createClouds() {
+      const cloudMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.7,
+        roughness: 1
+      });
+
+      for (let i = 0; i < 15; i++) {
+        const cloudGroup = new THREE.Group();
+
+        // Create fluffy cloud from multiple spheres
+        for (let j = 0; j < 5; j++) {
+          const size = 30 + Math.random() * 20;
+          const sphere = new THREE.Mesh(
+            new THREE.SphereGeometry(size, 8, 8),
+            cloudMat
+          );
+          sphere.position.set(
+            (Math.random() - 0.5) * 60,
+            (Math.random() - 0.5) * 20,
+            (Math.random() - 0.5) * 60
+          );
+          cloudGroup.add(sphere);
+        }
+
+        cloudGroup.position.set(
+          (Math.random() - 0.5) * 2000,
+          200 + Math.random() * 150,
+          (Math.random() - 0.5) * 2000
+        );
+
+        cloudGroup.userData.driftSpeed = 0.1 + Math.random() * 0.2;
+        scene.add(cloudGroup);
+      }
+    }
+
+    function createAmbientParticles() {
+      const particleCount = 200;
+      const particleGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 1000;
+        positions[i * 3 + 1] = Math.random() * 200;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 1000;
+      }
+
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const particleMat = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 2,
+        transparent: true,
+        opacity: 0.6,
+        sizeAttenuation: true
+      });
+
+      const particles = new THREE.Points(particleGeo, particleMat);
+      particles.name = 'ambientParticles';
+      scene.add(particles);
+    }
+
+    function createStreetLights() {
+      const positions = [
+        [-100, 0], [100, 0], [0, -100], [0, 100],
+        [-200, -200], [200, 200], [-200, 200], [200, -200]
+      ];
+
+      positions.forEach(pos => {
+        const group = new THREE.Group();
+
+        // Pole
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(2, 2, 50, 8),
+          new THREE.MeshStandardMaterial({ color: 0x34495e })
+        );
+        pole.position.y = 25;
+        pole.castShadow = true;
+        group.add(pole);
+
+        // Lamp
+        const lamp = new THREE.Mesh(
+          new THREE.BoxGeometry(8, 6, 8),
+          new THREE.MeshStandardMaterial({
+            color: 0xf39c12,
+            emissive: 0xf39c12,
+            emissiveIntensity: 0.5
+          })
+        );
+        lamp.position.y = 53;
+        group.add(lamp);
+
+        // Point light
+        const light = new THREE.PointLight(0xffd700, 0.8, 100);
+        light.position.y = 50;
+        light.castShadow = true;
+        light.shadow.mapSize.width = 512;
+        light.shadow.mapSize.height = 512;
+        group.add(light);
+
+        group.position.set(pos[0], 0, pos[1]);
+        scene.add(group);
+
+        buildings.push({ x: pos[0], z: pos[1], w: 4, d: 4 });
+      });
+    }
+
+    function createPerimeterFence() {
+      const bound = 800;
+      // North
+      createFence(0, -bound, 1600, 10);
+      // South
+      createFence(0, bound, 1600, 10);
+      // East
+      createFence(bound, 0, 10, 1600);
+      // West
+      createFence(-bound, 0, 10, 1600);
+
+      // Add collision for these boundaries
+      buildings.push({ x: 0, z: -bound, w: 1600, d: 20 });
+      buildings.push({ x: 0, z: bound, w: 1600, d: 20 });
+      buildings.push({ x: bound, z: 0, w: 20, d: 1600 });
+      buildings.push({ x: -bound, z: 0, w: 20, d: 1600 });
+    }
+
+    function createRoad(x, z, w, d, isVertical) {
+      const geo = new THREE.PlaneGeometry(w, d);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, 0.1, z);
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+
+      const stripeW = isVertical ? 2 : 15;
+      const stripeH = isVertical ? 15 : 2;
+      const count = isVertical ? Math.floor(d / 40) : Math.floor(w / 40);
+      const stripGeo = new THREE.PlaneGeometry(stripeW, stripeH);
+      const stripMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+      for (let i = 0; i < count; i++) {
+        const strip = new THREE.Mesh(stripGeo, stripMat);
+        strip.rotation.x = -Math.PI / 2;
+        const offset = (i * 40) - (isVertical ? d / 2 : w / 2) + 20;
+        if (isVertical) strip.position.set(x, 0.2, z + offset);
+        else strip.position.set(x + offset, 0.2, z);
+        scene.add(strip);
+      }
+    }
+
+    function initCars() {
+      // Parked cars (Static, bigger 1.5x)
+      createCar(-300, 45, 0xff0000, 1, false);
+      createCar(200, -45, 0x0000ff, -1, false);
+      createCar(45, -300, 0xffff00, 1, true);
+      createCar(-45, 200, 0x00ff00, -1, true);
+    }
+
+    function createCar(x, z, color, dir, isVertical) {
+      const group = new THREE.Group();
+      const s = 1.5; // Scale up
+
+      // Body
+      const body = new THREE.Mesh(new THREE.BoxGeometry(24 * s, 10 * s, 12 * s), new THREE.MeshStandardMaterial({ color: color }));
+      body.position.y = 7 * s;
+      group.add(body);
+
+      // Cabin
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(14 * s, 8 * s, 10 * s), new THREE.MeshStandardMaterial({ color: 0xdddddd }));
+      cabin.position.set(0, 14 * s, 0);
+      group.add(cabin);
+
+      // Wheels
+      const wheelGeo = new THREE.CylinderGeometry(3 * s, 3 * s, 2 * s, 8);
+      const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+      const w1 = new THREE.Mesh(wheelGeo, wheelMat); w1.rotation.x = Math.PI / 2; w1.position.set(-8 * s, 3 * s, 6 * s); group.add(w1);
+      const w2 = new THREE.Mesh(wheelGeo, wheelMat); w2.rotation.x = Math.PI / 2; w2.position.set(8 * s, 3 * s, 6 * s); group.add(w2);
+      const w3 = new THREE.Mesh(wheelGeo, wheelMat); w3.rotation.x = Math.PI / 2; w3.position.set(-8 * s, 3 * s, -6 * s); group.add(w3);
+      const w4 = new THREE.Mesh(wheelGeo, wheelMat); w4.rotation.x = Math.PI / 2; w4.position.set(8 * s, 3 * s, -6 * s); group.add(w4);
+
+      if (isVertical) {
+        group.rotation.y = Math.PI / 2;
+        group.position.set(x, 0, z);
+      } else {
+        group.position.set(x, 0, z);
+      }
+
+      scene.add(group);
+      buildings.push({ x, z, w: 24 * s, d: 12 * s }); // Collision for cars
+    }
+
+    function createGrass(count) {
+      const geo = new THREE.PlaneGeometry(4, 4);
+      const mat = new THREE.MeshBasicMaterial({ color: 0x00b894, side: THREE.DoubleSide });
+
+      for (let i = 0; i < count; i++) {
+        const group = new THREE.Group();
+        const b1 = new THREE.Mesh(geo, mat);
+        b1.position.y = 2;
+        const b2 = b1.clone();
+        b2.rotation.y = Math.PI / 3;
+        const b3 = b1.clone();
+        b3.rotation.y = -Math.PI / 3;
+
+        group.add(b1); group.add(b2); group.add(b3);
+
+        let x = (Math.random() - 0.5) * 1600;
+        let z = (Math.random() - 0.5) * 1600;
+        if (Math.abs(x) < 60 || Math.abs(z) < 320) continue;
+
+        group.position.set(x, 0, z);
+        scene.add(group);
+      }
+    }
+
+    function createFlowers(count) {
+      const colors = [0xff7675, 0xffeb3b, 0x74b9ff, 0xffffff];
+      const geo = new THREE.DodecahedronGeometry(2.5);
+      for (let i = 0; i < count; i++) {
+        const mat = new THREE.MeshStandardMaterial({ color: colors[Math.floor(Math.random() * colors.length)] });
+        const mesh = new THREE.Mesh(geo, mat);
+        let x = (Math.random() - 0.5) * 800;
+        let z = (Math.random() - 0.5) * 800;
+        if (Math.abs(x) < 50 || Math.abs(z) < 50) continue;
+        mesh.position.set(x, 2, z);
+        scene.add(mesh);
+        const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 3), new THREE.MeshStandardMaterial({ color: 0x00b894 }));
+        stalk.position.set(x, 0, z);
+        scene.add(stalk);
+      }
+    }
+
+    function createBust(x, z) {
+      const group = new THREE.Group();
+      const baseGeo = new THREE.BoxGeometry(10, 15, 10);
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0xbdc3c7 });
+      const base = new THREE.Mesh(baseGeo, baseMat);
+      base.position.y = 7.5;
+      group.add(base);
+
+      const headGeo = new THREE.SphereGeometry(5, 16, 16);
+      const bustMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, metalness: 0.6, roughness: 0.4 });
+      const head = new THREE.Mesh(headGeo, bustMat);
+      head.position.y = 18;
+      group.add(head);
+
+      const shoulderGeo = new THREE.BoxGeometry(12, 6, 6);
+      const shoulder = new THREE.Mesh(shoulderGeo, bustMat);
+      shoulder.position.y = 15;
+      group.add(shoulder);
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      buildings.push({ x, z, w: 10, d: 10 });
+    }
+
+    function createFlag(x, z) {
+      const group = new THREE.Group();
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 80, 8), new THREE.MeshStandardMaterial({ color: 0xecf0f1 }));
+      pole.position.y = 40;
+      group.add(pole);
+
+      const flagGeo = new THREE.BoxGeometry(30, 20, 1);
+      const flagMat = new THREE.MeshStandardMaterial({ color: 0xe74c3c });
+      const flag = new THREE.Mesh(flagGeo, flagMat);
+      flag.position.set(15, 70, 0);
+      group.add(flag);
+
+      // Crescent and Star (Simplified white details)
+      const moon = new THREE.Mesh(new THREE.CylinderGeometry(5, 5, 2, 16, 1, false, 0.5, 4.5), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      moon.rotation.x = Math.PI / 2;
+      moon.position.set(10, 70, 1);
+      group.add(moon);
+
+      const star = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      star.position.set(18, 70, 1);
+      group.add(star);
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      buildings.push({ x, z, w: 5, d: 5 });
+    }
+
+    function createMosque(x, z) {
+      const group = new THREE.Group();
+      const base = new THREE.Mesh(new THREE.BoxGeometry(80, 60, 80), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      base.position.y = 30;
+
+      // Mosque Windows
+      for (let i = -30; i <= 30; i += 20) {
+        const win = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 2, 8), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+        win.rotation.x = Math.PI / 2;
+        win.position.set(i, 40, 41);
+        base.add(win);
+      }
+
+      group.add(base);
+
+      const domeGeo = new THREE.SphereGeometry(40, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+      const domeMat = new THREE.MeshStandardMaterial({ color: 0x95a5a6 });
+      const dome = new THREE.Mesh(domeGeo, domeMat);
+      dome.position.y = 60;
+      group.add(dome);
+
+      const minaretGeo = new THREE.CylinderGeometry(4, 6, 120, 8);
+      const minaret = new THREE.Mesh(minaretGeo, new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      minaret.position.set(50, 60, 50);
+
+      // Minaret Balcony
+      const balc = new THREE.Mesh(new THREE.CylinderGeometry(8, 8, 2, 8), new THREE.MeshStandardMaterial({ color: 0xbdc3c7 }));
+      balc.position.y = 40;
+      minaret.add(balc);
+
+      group.add(minaret);
+
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(5, 20, 8), domeMat);
+      cone.position.set(50, 130, 50);
+      group.add(cone);
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      buildings.push({ x, z, w: 80, d: 80 });
+      // Add minaret collision approx
+      buildings.push({ x: x + 50, z: z + 50, w: 10, d: 10 });
+    }
+
+    function createAnimals() {
+      // Cat
+      createDetailedAnimal(-150, 50, 0xFFA500, 0.5, 'cat');
+      createDetailedAnimal(250, 100, 0xbdc3c7, 0.5, 'cat');
+      // Dog
+      createDetailedAnimal(-50, -250, 0x8B4513, 0.8, 'dog');
+      createDetailedAnimal(100, 200, 0xffffff, 0.8, 'dog');
+    }
+
+    function createDetailedAnimal(x, z, color, scale, type) {
+      const group = new THREE.Group();
+      const mat = new THREE.MeshStandardMaterial({ color: color });
+
+      const body = new THREE.Mesh(new THREE.BoxGeometry(10 * scale, 6 * scale, 14 * scale), mat);
+      body.position.y = 8 * scale;
+      group.add(body);
+
+      const headSize = 7 * scale;
+      const head = new THREE.Mesh(new THREE.BoxGeometry(headSize, headSize, headSize), mat);
+      head.position.set(0, 13 * scale, 9 * scale);
+      group.add(head);
+
+      const earGeo = new THREE.ConeGeometry(2 * scale, 4 * scale, 4);
+      const lEar = new THREE.Mesh(earGeo, mat);
+      lEar.position.set(-2 * scale, 17 * scale, 9 * scale);
+      group.add(lEar);
+      const rEar = lEar.clone();
+      rEar.position.set(2 * scale, 17 * scale, 9 * scale);
+      group.add(rEar);
+
+      const legGeo = new THREE.BoxGeometry(2 * scale, 6 * scale, 2 * scale);
+      const legPositions = [[-3, 3, 5], [3, 3, 5], [-3, 3, -5], [3, 3, -5]];
+      legPositions.forEach(pos => {
+        const leg = new THREE.Mesh(legGeo, mat);
+        leg.position.set(pos[0] * scale, pos[1] * scale, pos[2] * scale);
+        group.add(leg);
+      });
+
+      group.position.set(x, 0, z);
+      group.rotation.y = Math.random() * Math.PI * 2;
+      scene.add(group);
+
+      // Add collision
+      buildings.push({ x: x, z: z, w: 10 * scale * 2, d: 14 * scale * 2 });
+    }
+
+    function createProps() {
+      createBench(350, 100);
+      createBench(-350, 100);
+      createBench(150, -280);
+      createFountain(300, 50);
+      createFence(-250, 150, 100, 100);
+    }
+
+    function createBench(x, z) {
+      const group = new THREE.Group();
+      const wood = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(20, 2, 8), wood);
+      seat.position.y = 5;
+      group.add(seat);
+      const back = new THREE.Mesh(new THREE.BoxGeometry(20, 6, 2), wood);
+      back.position.set(0, 9, -4);
+      group.add(back);
+      const legGeo = new THREE.BoxGeometry(2, 6, 8);
+      const l1 = new THREE.Mesh(legGeo, new THREE.MeshStandardMaterial({ color: 0x333333 }));
+      l1.position.set(-8, 3, 0);
+      group.add(l1);
+      const l2 = l1.clone();
+      l2.position.set(8, 3, 0);
+      group.add(l2);
+      group.position.set(x, 0, z);
+      scene.add(group);
+      buildings.push({ x, z, w: 20, d: 8 });
+    }
+
+    function createFountain(x, z) {
+      const group = new THREE.Group();
+      const stone = new THREE.MeshStandardMaterial({ color: 0xbdc3c7 });
+      const water = new THREE.MeshStandardMaterial({ color: 0x74b9ff, transparent: true, opacity: 0.8 });
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 5, 12), stone);
+      base.position.y = 2.5;
+      group.add(base);
+      const pool = new THREE.Mesh(new THREE.CylinderGeometry(18, 18, 1, 12), water);
+      pool.position.y = 5;
+      group.add(pool);
+      const pillar = new THREE.Mesh(new THREE.CylinderGeometry(3, 5, 15, 8), stone);
+      pillar.position.y = 10;
+      group.add(pillar);
+      group.position.set(x, 0, z);
+      scene.add(group);
+      buildings.push({ x, z, w: 40, d: 40 });
+    }
+
+    function createFence(x, z, w, d) {
+      const postMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+      const plankMat = new THREE.MeshStandardMaterial({ color: 0xA0522D });
+
+      // How many posts based on width/depth
+      const isHorizontal = w > d;
+      const length = Math.max(w, d);
+      const count = Math.floor(length / 40);
+
+      for (let i = 0; i <= count; i++) {
+        const offset = (i * 40) - (length / 2);
+        const post = new THREE.Mesh(new THREE.BoxGeometry(4, 15, 4), postMat);
+
+        if (isHorizontal) post.position.set(x + offset, 7.5, z);
+        else post.position.set(x, 7.5, z + offset);
+
+        scene.add(post);
+
+        // Planks between posts
+        if (i < count) {
+          const plank = new THREE.Mesh(new THREE.BoxGeometry(isHorizontal ? 40 : 2, 4, isHorizontal ? 2 : 40), plankMat);
+          if (isHorizontal) plank.position.set(x + offset + 20, 10, z);
+          else plank.position.set(x, 10, z + offset + 20);
+          scene.add(plank);
+
+          const plank2 = plank.clone();
+          plank2.position.y = 5;
+          scene.add(plank2);
+        }
+      }
+    }
+
+    function createWindow(group, x, y, z, w, h) {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(w + 2, h + 2, 2), new THREE.MeshStandardMaterial({ color: 0xeeeeee }));
+      frame.position.set(x, y, z);
+      group.add(frame);
+
+      const glass = new THREE.Mesh(new THREE.BoxGeometry(w, h, 2.2), new THREE.MeshStandardMaterial({ color: 0x81ecec, emissive: 0x00cec9, emissiveIntensity: 0.2 }));
+      glass.position.set(x, y, z);
+      group.add(glass);
+
+      const sill = new THREE.Mesh(new THREE.BoxGeometry(w + 4, 2, 4), new THREE.MeshStandardMaterial({ color: 0xaaaaaa }));
+      sill.position.set(x, y - h / 2 - 1, z + 1);
+      group.add(sill);
+    }
+
+    function createSpecificBuilding(x, z, w, h, d, color, type) {
+      const group = new THREE.Group();
+
+      // Main building with enhanced material
+      const geometry = new THREE.BoxGeometry(w, h, d);
+      const material = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.8,
+        metalness: 0.1
+      });
+      const cube = new THREE.Mesh(geometry, material);
+      cube.position.y = h / 2;
+      cube.castShadow = true;
+      cube.receiveShadow = true;
+      group.add(cube);
+
+      // Add brick/siding detail lines
+      for (let i = 0; i < h; i += 10) {
+        const line = new THREE.Mesh(
+          new THREE.BoxGeometry(w + 1, 0.5, d + 1),
+          new THREE.MeshStandardMaterial({ color: 0x000000, transparent: true, opacity: 0.1 })
+        );
+        line.position.y = i;
+        group.add(line);
+      }
+
+      // Cornice (decorative top trim)
+      const corniceGeo = new THREE.BoxGeometry(w + 8, 8, d + 8);
+      const corniceMat = new THREE.MeshStandardMaterial({
+        color: type === 'school' ? 0xa0522d : 0xffffff,
+        roughness: 0.6
+      });
+      const cornice = new THREE.Mesh(corniceGeo, corniceMat);
+      cornice.position.y = h + 4;
+      cornice.castShadow = true;
+      group.add(cornice);
+
+      // Enhanced roof
+      const roofH = type === 'school' ? h * 0.3 : h * 0.5;
+      const roofGeo = new THREE.ConeGeometry(Math.max(w, d) * 0.7, roofH, 4);
+      const roofMat = new THREE.MeshStandardMaterial({
+        color: 0x8b0000,
+        roughness: 0.9,
+        metalness: 0.2
+      });
+      const roof = new THREE.Mesh(roofGeo, roofMat);
+      roof.position.y = h + 8 + (roofH / 2);
+      roof.rotation.y = Math.PI / 4;
+      roof.castShadow = true;
+      group.add(roof);
+
+      // Chimney with brick detail
+      const chimGeo = new THREE.BoxGeometry(10, 20, 10);
+      const chimMat = new THREE.MeshStandardMaterial({ color: 0xaa5555 });
+      const chim = new THREE.Mesh(chimGeo, chimMat);
+      chim.position.set(w / 4, h + 18, d / 4);
+      chim.castShadow = true;
+      group.add(chim);
+
+      // Chimney cap
+      const capGeo = new THREE.BoxGeometry(12, 2, 12);
+      const cap = new THREE.Mesh(capGeo, new THREE.MeshStandardMaterial({ color: 0x333333 }));
+      cap.position.set(w / 4, h + 29, d / 4);
+      group.add(cap);
+
+      // Enhanced door
+      const doorW = w * 0.2;
+      const doorH = h * 0.4;
+      const doorGeo = new THREE.BoxGeometry(doorW, doorH, d * 0.05);
+      const doorMat = new THREE.MeshStandardMaterial({
+        color: 0x654321,
+        roughness: 0.7,
+        metalness: 0.2
+      });
+      const door = new THREE.Mesh(doorGeo, doorMat);
+      door.position.set(0, doorH / 2, d / 2 + 0.1);
+      door.castShadow = true;
+      group.add(door);
+
+      // Door handle
+      const handleGeo = new THREE.SphereGeometry(1.5, 8, 8);
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9 });
+      const handle = new THREE.Mesh(handleGeo, handleMat);
+      handle.position.set(doorW * 0.3, doorH / 2, d / 2 + 2);
+      group.add(handle);
+
+      // Door panels
+      for (let i = 0; i < 2; i++) {
+        const panelGeo = new THREE.BoxGeometry(doorW * 0.4, doorH * 0.35, 0.5);
+        const panel = new THREE.Mesh(panelGeo, new THREE.MeshStandardMaterial({ color: 0x8b6914 }));
+        panel.position.set(0, (i === 0 ? doorH * 0.3 : doorH * 0.7), d / 2 + 1);
+        group.add(panel);
+      }
+
+      // Door frame (archway style)
+      const dFrameBot = new THREE.Mesh(new THREE.BoxGeometry(4, doorH + 4, 4), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      dFrameBot.position.set(0, doorH / 2, d / 2);
+      group.add(dFrameBot);
+
+      const dFrameTop = new THREE.Mesh(new THREE.BoxGeometry(doorW + 8, 6, 4), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      dFrameTop.position.set(0, doorH + 3, d / 2);
+      group.add(dFrameTop);
+
+      // Steps (3 levels)
+      for (let i = 0; i < 3; i++) {
+        const stepGeo = new THREE.BoxGeometry(doorW + 10 + (i * 4), 3, 6 - (i * 1.5));
+        const step = new THREE.Mesh(stepGeo, new THREE.MeshStandardMaterial({ color: 0x808080 }));
+        step.position.set(0, 1.5 + (i * 3), d / 2 + 8 - (i * 2));
+        step.castShadow = true;
+        group.add(step);
+      }
+
+      // School-specific: Clock tower
+      if (type === 'school') {
+        const clockTower = new THREE.Mesh(new THREE.BoxGeometry(30, 40, 30), material);
+        clockTower.position.y = h + 28;
+        clockTower.castShadow = true;
+        group.add(clockTower);
+
+        const clockFace = new THREE.Mesh(
+          new THREE.CylinderGeometry(10, 10, 2, 12),
+          new THREE.MeshBasicMaterial({ color: 0xffffff })
+        );
+        clockFace.rotation.x = Math.PI / 2;
+        clockFace.position.set(0, h + 33, 16);
+        group.add(clockFace);
+
+        // Clock hands
+        const hourHand = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 6, 0.5),
+          new THREE.MeshBasicMaterial({ color: 0x000000 })
+        );
+        hourHand.position.set(0, h + 33, 17);
+        hourHand.rotation.z = 0.5;
+        group.add(hourHand);
+      }
+
+      // Enhanced windows with more detail
+      const winSize = 12;
+      const windowPositions = [
+        // Front facade
+        [-w * 0.3, h * 0.7, d / 2],
+        [w * 0.3, h * 0.7, d / 2],
+        [-w * 0.3, h * 0.4, d / 2],
+        [w * 0.3, h * 0.4, d / 2],
+        // Back facade
+        [-w * 0.3, h * 0.7, -d / 2],
+        [w * 0.3, h * 0.7, -d / 2],
+        // Side walls
+        [w / 2, h * 0.7, 0],
+        [-w / 2, h * 0.7, 0]
+      ];
+
+      windowPositions.forEach(pos => {
+        createWindow(group, pos[0], pos[1], pos[2], winSize, winSize);
+      });
+
+      // Balcony for library
+      if (type === 'library') {
+        const balconyFloor = new THREE.Mesh(
+          new THREE.BoxGeometry(w * 0.8, 3, 12),
+          new THREE.MeshStandardMaterial({ color: 0xcccccc })
+        );
+        balconyFloor.position.set(0, h * 0.85, d / 2 + 6);
+        balconyFloor.castShadow = true;
+        group.add(balconyFloor);
+
+        // Balcony railing
+        for (let i = -3; i <= 3; i++) {
+          const rail = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.8, 0.8, 8, 8),
+            new THREE.MeshStandardMaterial({ color: 0x333333 })
+          );
+          rail.position.set(i * 10, h * 0.85 + 5, d / 2 + 12);
+          group.add(rail);
+        }
+      }
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      buildings.push({ x, z, w, d });
+    }
+
+    function createTree(x, z) {
+      const group = new THREE.Group();
+      const trunkGeo = new THREE.CylinderGeometry(5, 7, 25, 8);
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+      const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+      trunk.position.y = 12.5;
+      trunk.castShadow = true;
+      group.add(trunk);
+
+      const leavesMat = new THREE.MeshStandardMaterial({ color: 0x00b894 });
+      const l1 = new THREE.Mesh(new THREE.ConeGeometry(25, 30, 8), leavesMat);
+      l1.position.y = 35;
+      l1.castShadow = true;
+      group.add(l1);
+      const l2 = new THREE.Mesh(new THREE.ConeGeometry(20, 25, 8), leavesMat);
+      l2.position.y = 50;
+      l2.castShadow = true;
+      group.add(l2);
+
+      group.position.set(x, 0, z);
+      scene.add(group);
+      // buildings.push({ x, z, w: 20, d: 20 }); // REMOVED: Trees should not block movement
+    }
+
+    function createDetailedHuman(data) {
+      const group = new THREE.Group();
+      const skinMat = new THREE.MeshStandardMaterial({ color: data.skinColor || 0xffdbac });
+      const clothesMat = new THREE.MeshStandardMaterial({ color: data.color });
+      const hairMat = new THREE.MeshStandardMaterial({ color: data.hairColor || 0x2d3436 });
+
+      // Hip joints for leg animation
+      const lLegGroup = new THREE.Group();
+      lLegGroup.position.set(-2.5, 12, 0);
+      group.add(lLegGroup);
+
+      const rLegGroup = new THREE.Group();
+      rLegGroup.position.set(2.5, 12, 0);
+      group.add(rLegGroup);
+
+      // Leg Meshes with better shape
+      const legGeo = new THREE.BoxGeometry(3.5, 12, 4);
+      const legMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+
+      const lLeg = new THREE.Mesh(legGeo, legMat);
+      lLeg.position.set(0, -6, 0);
+      lLeg.castShadow = true;
+      lLegGroup.add(lLeg);
+
+      // Shoes
+      const shoeGeo = new THREE.BoxGeometry(4, 2, 5);
+      const shoeMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+      const lShoe = new THREE.Mesh(shoeGeo, shoeMat);
+      lShoe.position.set(0, -12.5, 0.5);
+      lShoe.castShadow = true;
+      lLegGroup.add(lShoe);
+
+      const rLeg = new THREE.Mesh(legGeo, legMat);
+      rLeg.position.set(0, -6, 0);
+      rLeg.castShadow = true;
+      rLegGroup.add(rLeg);
+
+      const rShoe = new THREE.Mesh(shoeGeo, shoeMat);
+      rShoe.position.set(0, -12.5, 0.5);
+      rShoe.castShadow = true;
+      rLegGroup.add(rShoe);
+
+      group.userData.legs = { left: lLegGroup, right: rLegGroup };
+
+      // Torso with better shape
+      const torsoGeo = new THREE.BoxGeometry(11, 14, 6);
+      const torso = new THREE.Mesh(torsoGeo, clothesMat);
+      torso.position.y = 19;
+      torso.castShadow = true;
+      group.add(torso);
+
+      // Add collar detail
+      const collarGeo = new THREE.BoxGeometry(11.5, 2, 6.5);
+      const collarMat = new THREE.MeshStandardMaterial({ color: data.color, emissive: data.color, emissiveIntensity: 0.1 });
+      const collar = new THREE.Mesh(collarGeo, collarMat);
+      collar.position.y = 25;
+      group.add(collar);
+
+      // Arms with shoulder joints
+      const lArmGroup = new THREE.Group();
+      lArmGroup.position.set(-7.5, 22, 0);
+      group.add(lArmGroup);
+
+      const rArmGroup = new THREE.Group();
+      rArmGroup.position.set(7.5, 22, 0);
+      group.add(rArmGroup);
+
+      const armGeo = new THREE.BoxGeometry(3.5, 12, 4);
+      const lArm = new THREE.Mesh(armGeo, clothesMat);
+      lArm.position.y = -3;
+      lArm.castShadow = true;
+      lArmGroup.add(lArm);
+
+      // Hands
+      const handGeo = new THREE.BoxGeometry(3.5, 3, 3.5);
+      const lHand = new THREE.Mesh(handGeo, skinMat);
+      lHand.position.y = -10.5;
+      lHand.castShadow = true;
+      lArmGroup.add(lHand);
+
+      const rArm = new THREE.Mesh(armGeo, clothesMat);
+      rArm.position.y = -3;
+      rArm.castShadow = true;
+      rArmGroup.add(rArm);
+
+      const rHand = new THREE.Mesh(handGeo, skinMat);
+      rHand.position.y = -10.5;
+      rHand.castShadow = true;
+      rArmGroup.add(rHand);
+
+      group.userData.arms = { left: lArmGroup, right: rArmGroup };
+
+      // Neck
+      const neckGeo = new THREE.CylinderGeometry(2.5, 3, 4, 8);
+      const neck = new THREE.Mesh(neckGeo, skinMat);
+      neck.position.y = 27.5;
+      neck.castShadow = true;
+      group.add(neck);
+
+      // Head with rounded edges
+      const headGeo = new THREE.BoxGeometry(9, 9, 9);
+      const head = new THREE.Mesh(headGeo, skinMat);
+      head.position.y = 30.5;
+      head.castShadow = true;
+      group.add(head);
+
+      // Nose - 3D feature
+      const noseGeo = new THREE.BoxGeometry(1.5, 2, 2);
+      const nose = new THREE.Mesh(noseGeo, skinMat);
+      nose.position.set(0, 30, 5);
+      group.add(nose);
+
+      // Ears
+      const earGeo = new THREE.BoxGeometry(1.5, 3, 2);
+      const lEar = new THREE.Mesh(earGeo, skinMat);
+      lEar.position.set(-5, 30.5, 2);
+      group.add(lEar);
+      const rEar = new THREE.Mesh(earGeo, skinMat);
+      rEar.position.set(5, 30.5, 2);
+      group.add(rEar);
+
+      // Eyes with better detail
+      const eyeGeo = new THREE.BoxGeometry(2, 2, 1);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+      const lEye = new THREE.Mesh(eyeGeo, eyeMat);
+      lEye.position.set(-2, 31, 4.6);
+      group.add(lEye);
+
+      const rEye = new THREE.Mesh(eyeGeo, eyeMat);
+      rEye.position.set(2, 31, 4.6);
+      group.add(rEye);
+
+      // Pupils
+      const pupilGeo = new THREE.BoxGeometry(1.2, 1.2, 1.1);
+      const pupilMat = new THREE.MeshBasicMaterial({ color: data.eyeColor || 0x000000 });
+      const lPupil = new THREE.Mesh(pupilGeo, pupilMat);
+      lPupil.position.set(-2, 31, 4.7);
+      group.add(lPupil);
+      const rPupil = new THREE.Mesh(pupilGeo, pupilMat);
+      rPupil.position.set(2, 31, 4.7);
+      group.add(rPupil);
+
+      // Eyebrows
+      const browGeo = new THREE.BoxGeometry(2.5, 0.8, 0.8);
+      const browMat = new THREE.MeshStandardMaterial({ color: data.hairColor || 0x2d3436 });
+      const lBrow = new THREE.Mesh(browGeo, browMat);
+      lBrow.position.set(-2, 32.5, 4.5);
+      lBrow.rotation.z = 0.1;
+      group.add(lBrow);
+      const rBrow = new THREE.Mesh(browGeo, browMat);
+      rBrow.position.set(2, 32.5, 4.5);
+      rBrow.rotation.z = -0.1;
+      group.add(rBrow);
+
+      // Mouth with lips
+      const mouthGeo = new THREE.BoxGeometry(3.5, 1, 1);
+      const mouthMat = new THREE.MeshBasicMaterial({ color: 0x8B4545 });
+      const mouth = new THREE.Mesh(mouthGeo, mouthMat);
+      mouth.position.set(0, 28.5, 4.6);
+      group.add(mouth);
+
+      // Hairstyles based on type
+      const hairStyle = data.hairStyle || 'short';
+
+      if (data.type === 'female') {
+        if (hairStyle === 'long') {
+          // Long flowing hair
+          const backHair = new THREE.Mesh(new THREE.BoxGeometry(9.5, 15, 3), hairMat);
+          backHair.position.set(0, 28, -3.5);
+          backHair.castShadow = true;
+          group.add(backHair);
+
+          const lHair = new THREE.Mesh(new THREE.BoxGeometry(2, 15, 6), hairMat);
+          lHair.position.set(-4.5, 28, 0);
+          lHair.castShadow = true;
+          group.add(lHair);
+
+          const rHair = new THREE.Mesh(new THREE.BoxGeometry(2, 15, 6), hairMat);
+          rHair.position.set(4.5, 28, 0);
+          rHair.castShadow = true;
+          group.add(rHair);
+
+          const topHair = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 10), hairMat);
+          topHair.position.y = 35;
+          topHair.castShadow = true;
+          group.add(topHair);
+        } else if (hairStyle === 'ponytail') {
+          // Ponytail style
+          const topHair = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 10), hairMat);
+          topHair.position.y = 35;
+          topHair.castShadow = true;
+          group.add(topHair);
+
+          const backTop = new THREE.Mesh(new THREE.BoxGeometry(8, 8, 2), hairMat);
+          backTop.position.set(0, 32, -3.5);
+          backTop.castShadow = true;
+          group.add(backTop);
+
+          // Ponytail
+          const ponytail = new THREE.Mesh(new THREE.CylinderGeometry(2, 1.5, 12, 8), hairMat);
+          ponytail.position.set(0, 24, -5);
+          ponytail.rotation.x = 0.3;
+          ponytail.castShadow = true;
+          group.add(ponytail);
+        } else if (hairStyle === 'bun') {
+          // Bun style
+          const topHair = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 10), hairMat);
+          topHair.position.y = 35;
+          topHair.castShadow = true;
+          group.add(topHair);
+
+          const bunGeo = new THREE.SphereGeometry(4, 12, 12);
+          const bun = new THREE.Mesh(bunGeo, hairMat);
+          bun.position.set(0, 35, -3);
+          bun.castShadow = true;
+          group.add(bun);
+        } else {
+          // Short female hair
+          const topHair = new THREE.Mesh(new THREE.BoxGeometry(10, 3, 10), hairMat);
+          topHair.position.y = 35;
+          topHair.castShadow = true;
+          group.add(topHair);
+
+          const sideHair = new THREE.Mesh(new THREE.BoxGeometry(10, 8, 9), hairMat);
+          sideHair.position.set(0, 32, 0);
+          sideHair.castShadow = true;
+          group.add(sideHair);
+        }
+      } else {
+        // Male hairstyles
+        if (hairStyle === 'modern') {
+          // Modern swept style
+          const topHair = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 10), hairMat);
+          topHair.position.y = 35.5;
+          topHair.castShadow = true;
+          group.add(topHair);
+
+          const frontHair = new THREE.Mesh(new THREE.BoxGeometry(8, 3, 3), hairMat);
+          frontHair.position.set(1, 35, 4);
+          frontHair.rotation.z = -0.2;
+          frontHair.castShadow = true;
+          group.add(frontHair);
+        } else {
+          // Short male hair
+          const hair = new THREE.Mesh(new THREE.BoxGeometry(9.5, 3, 9.5), hairMat);
+          hair.position.y = 35;
+          hair.castShadow = true;
+          group.add(hair);
+        }
+      }
+
+      // Glasses if specified
+      if (data.hasGlasses) {
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+        // Frames
+        const lFrame = new THREE.Mesh(
+          new THREE.TorusGeometry(1.8, 0.3, 8, 12),
+          frameMat
+        );
+        lFrame.position.set(-2, 31, 4.8);
+        lFrame.rotation.y = 0;
+        group.add(lFrame);
+
+        const rFrame = new THREE.Mesh(
+          new THREE.TorusGeometry(1.8, 0.3, 8, 12),
+          frameMat
+        );
+        rFrame.position.set(2, 31, 4.8);
+        rFrame.rotation.y = 0;
+        group.add(rFrame);
+
+        // Bridge
+        const bridge = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 0.3, 0.3),
+          frameMat
+        );
+        bridge.position.set(0, 31, 4.8);
+        group.add(bridge);
+
+        // Lenses (transparent)
+        const lensMat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.3,
+          metalness: 0.5,
+          roughness: 0.1
+        });
+
+        const lLens = new THREE.Mesh(
+          new THREE.CircleGeometry(1.5, 16),
+          lensMat
+        );
+        lLens.position.set(-2, 31, 4.9);
+        group.add(lLens);
+
+        const rLens = new THREE.Mesh(
+          new THREE.CircleGeometry(1.5, 16),
+          lensMat
+        );
+        rLens.position.set(2, 31, 4.9);
+        group.add(rLens);
+      }
+
+      return group;
+    }
+
+    // ============ MODEL LOADING SYSTEM ============
+    const modelLoader = new THREE.GLTFLoader();
+    const modelCache = {};
+
+    function loadModel(path, targetHeight, position, rotationY, onSuccess, onError) {
+      if (modelCache[path]) {
+        const gltf = modelCache[path];
+        const model = gltf.scene.clone();
+        const animations = gltf.animations.map(anim => anim.clone());
+
+        const wrapper = setupModel(model, targetHeight, position, rotationY);
+        onSuccess(wrapper, animations);
+        return;
+      }
+
+      modelLoader.load(path, (gltf) => {
+        modelCache[path] = gltf;
+        const model = gltf.scene.clone();
+        const animations = gltf.animations.map(anim => anim.clone());
+
+        const wrapper = setupModel(model, targetHeight, position, rotationY);
+        onSuccess(wrapper, animations);
+      }, undefined, (error) => {
+        console.warn(`Model not found: ${path}. Using fallback.`);
+        if (onError) onError();
+      });
+    }
+
+    function setupModel(model, targetHeight, position, rotationY) {
+      // 1. Create Wrapper
+      const wrapper = new THREE.Group();
+      wrapper.userData.originalModel = model;
+
+      // 2. Calculate Scale
+      const box = new THREE.Box3().setFromObject(model);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+
+      console.log('Raw Model Size:', size);
+
+      let scaleFactor = 1;
+      if (size.y < 0.01 || size.y > 10000) {
+        console.warn('Model size unusual. Using default scale 20.');
+        scaleFactor = 20;
+      } else {
+        scaleFactor = targetHeight / size.y;
+        console.log('Scaling Factor:', scaleFactor);
+      }
+
+      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+      // 3. Re-calculate Box & Center Geometry
+      const scaledBox = new THREE.Box3().setFromObject(model);
+      const center = new THREE.Vector3();
+      scaledBox.getCenter(center);
+
+      // Move model to center it at (0,0,0) of wrapper
+      model.position.x = -center.x;
+      model.position.z = -center.z;
+      model.position.y = -scaledBox.min.y; // Align feet to 0
+
+      wrapper.add(model);
+
+      // 4. Position Wrapper
+      wrapper.position.copy(position);
+      if (rotationY !== undefined) wrapper.rotation.y = rotationY;
+
+      // 5. Fix Materials & Debug
+      model.traverse((node) => {
+        if (node.isMesh) {
+          node.castShadow = true;
+          node.receiveShadow = true;
+          // Fix frustum culling issues
+          node.frustumCulled = false;
+          node.visible = true; // FORCE VISIBILITY
+          node.layers.enable(0); // Ensure camera sees it
+
+          if (node.material) {
+            // Force DoubleSide (fix backface culling)
+            node.material.side = THREE.DoubleSide;
+
+            // Disable transparency to fix invisibility
+            node.material.transparent = false;
+            node.material.opacity = 1.0;
+            node.material.alphaTest = 0.5;
+            node.material.depthWrite = true;
+
+            // reset color to white to ensure texture visibility
+            if (node.material.color) node.material.color.setHex(0xffffff);
+
+            // DEBUG: FORCE RAINBOW MATERIAL (To rule out lighting/texture issues)
+            node.material = new THREE.MeshNormalMaterial({ side: THREE.DoubleSide });
+
+            // DEBUG: ADD BLUE WIREFRAME CLONE (To verify geometry existence)
+            try {
+              const wireGeo = node.geometry.clone();
+              const wireMat = new THREE.MeshBasicMaterial({
+                color: 0x00ffff,
+                wireframe: true,
+                depthTest: false, // Draw on top of everything
+                transparent: false
+              });
+              const wireMesh = new THREE.Mesh(wireGeo, wireMat);
+              node.add(wireMesh);
+
+              // DEBUG: ADD POINTS CLOUD (To verify vertex existence)
+              const pointsMat = new THREE.PointsMaterial({ color: 0xff0000, size: 5, sizeAttenuation: false });
+              const points = new THREE.Points(node.geometry, pointsMat);
+              node.add(points);
+
+            } catch (e) { console.error("Clone failed", e); }
+          }
+        }
+      });
+
+      // DEBUG: Yellow Wireframe Box
+      const debugBox = new THREE.BoxHelper(model, 0xffff00);
+      wrapper.add(debugBox);
+
+      return wrapper;
+    }
+
+
+
+    function createPlayer(charData) {
+      playerGroup = new THREE.Group();
+
+      // Try loading model, if fails or pending, add procedural
+      const proceduralPlayer = createDetailedHuman(
+        charData.look || charData // Handle slight data diff
+      );
+      playerGroup.add(proceduralPlayer);
+
+      // Attempt to load GLB (auto-scale to 35 units height ~2m)
+      const modelPath = `models / ${charData.id}.glb`;
+      // User requested "face opposite" -> Try 0 rotation instead of Math.PI default
+      const rotation = 0;
+
+      loadModel(modelPath, 35, new THREE.Vector3(0, 0, 0), rotation, (wrapper, animations) => {
+        playerGroup.remove(proceduralPlayer); // Remove fallback
+        playerGroup.add(wrapper);
+
+        // Store references
+        playerGroup.userData.isModel = true;
+        playerGroup.userData.model = wrapper;
+        const innerModel = wrapper.userData.originalModel;
+
+        // Animation System
+        if (animations && animations.length > 0) {
+          const mixer = new THREE.AnimationMixer(innerModel);
+          playerGroup.userData.mixer = mixer;
+          playerGroup.userData.actions = {};
+
+          // Auto-detect animations (case-insensitive)
+          animations.forEach(clip => {
+            const name = clip.name.toLowerCase();
+            const action = mixer.clipAction(clip);
+            if (name.includes('idle')) playerGroup.userData.actions.idle = action;
+            else if (name.includes('walk') || name.includes('run')) playerGroup.userData.actions.walk = action;
+            else if (name.includes('jump')) playerGroup.userData.actions.jump = action;
+          });
+
+          // Fallback: Use first animation as walk/idle
+          if (!playerGroup.userData.actions.idle && animations.length > 0) {
+            playerGroup.userData.actions.idle = mixer.clipAction(animations[0]);
+          }
+          if (!playerGroup.userData.actions.walk && animations.length > 1) {
+            playerGroup.userData.actions.walk = mixer.clipAction(animations[1]);
+          } else if (!playerGroup.userData.actions.walk) {
+            playerGroup.userData.actions.walk = playerGroup.userData.actions.idle;
+          }
+
+          // Start Idle
+          if (playerGroup.userData.actions.idle) playerGroup.userData.actions.idle.play();
+        }
+      });
+
+      playerGroup.position.set(0, 0, 0);
+      scene.add(playerGroup);
+
+      // Store references for animation (only for procedural fallback)
+      playerGroup.userData.legs = proceduralPlayer.userData.legs;
+      playerGroup.userData.arms = proceduralPlayer.userData.arms;
+    }
+
+    function createVillager(data) {
+      // Use look if defined, else generic
+      const lookData = data.look || { type: 'male', color: '#7f8c8d', hairColor: '#222', skinColor: '#ffdbac' };
+
+      const group = new THREE.Group();
+      group.position.set(data.x, 0, data.z);
+
+      // Procedural fallback
+      const proceduralVillager = createDetailedHuman(lookData);
+      group.add(proceduralVillager);
+
+      // Try loading model (scale 35)
+      const modelPath = `models / villager_${data.id}.glb`;
+      loadModel(modelPath, 35, new THREE.Vector3(0, 0, 0), 0, (wrapper, animations) => {
+        group.remove(proceduralVillager);
+        group.add(wrapper);
+        group.userData.isModel = true;
+        // TODO: Add villager animations later
+      });
+
+      // Enhanced quest marker with sparkles
+      const markGeo = new THREE.BoxGeometry(2, 6, 2);
+      // Use MeshBasicMaterial for unlit visibility (emissive not needed/supported)
+      const markMat = new THREE.MeshBasicMaterial({ color: 0xFFFF00 });
+      const mark = new THREE.Mesh(markGeo, markMat);
+      mark.position.y = 45;
+      mark.name = "questMark";
+      mark.castShadow = true;
+      group.add(mark);
+
+      // Add sparkle particles around quest marker
+      const sparkleCount = 20;
+      const sparkleGeo = new THREE.BufferGeometry();
+      const sparklePositions = new Float32Array(sparkleCount * 3);
+
+      for (let i = 0; i < sparkleCount; i++) {
+        const angle = (i / sparkleCount) * Math.PI * 2;
+        const radius = 5 + Math.random() * 3;
+        sparklePositions[i * 3] = Math.cos(angle) * radius;
+        sparklePositions[i * 3 + 1] = 45 + (Math.random() - 0.5) * 10;
+        sparklePositions[i * 3 + 2] = Math.sin(angle) * radius;
+      }
+
+      sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sparklePositions, 3));
+
+      const sparkleMat = new THREE.PointsMaterial({
+        color: 0xffff00,
+        size: 3,
+        transparent: true,
+        opacity: 0.8,
+        sizeAttenuation: true
+      });
+
+      const sparkles = new THREE.Points(sparkleGeo, sparkleMat);
+      sparkles.name = "questSparkles";
+      group.add(sparkles);
+
+      group.position.set(data.x, 0, data.z);
+      // Random rotation so villagers face different directions
+      group.rotation.y = Math.random() * Math.PI * 2;
+
+      group.userData = { id: data.id };
+      scene.add(group);
+      villagerMeshes.push(group);
+    }
+
+    // ============ LOGIC LOOP ============
+
+    function animate3D() {
+      requestAnimationFrame(animate3D);
+
+      const delta = clock.getDelta();
+      const elapsed = clock.elapsedTime;
+
+      if (gameState.isInputActive) {
+        handleMovement(delta);
+        checkInteractions();
+
+        // Update Animation Mixers
+        if (playerGroup && playerGroup.userData.mixer) {
+          playerGroup.userData.mixer.update(delta);
+
+          const actions = playerGroup.userData.actions;
+          if (actions) {
+            const isMoving = (gameState.mobileMove.x !== 0 || gameState.mobileMove.y !== 0 ||
+              keysPressed['w'] || keysPressed['a'] || keysPressed['s'] || keysPressed['d'] ||
+              keysPressed['ArrowUp'] || keysPressed['ArrowDown'] || keysPressed['ArrowLeft'] || keysPressed['ArrowRight']);
+
+            if (isMoving) {
+              if (actions.walk && !actions.walk.isRunning()) {
+                if (actions.idle) actions.idle.fadeOut(0.2);
+                actions.walk.reset().fadeIn(0.2).play();
+              }
+            } else {
+              if (actions.idle && !actions.idle.isRunning()) {
+                if (actions.walk) actions.walk.fadeOut(0.2);
+                actions.idle.reset().fadeIn(0.2).play();
+              }
+            }
+          }
+        }
+      }
+
+      // Animate villagers with idle movements
+      villagerMeshes.forEach((mesh, index) => {
+        const mark = mesh.getObjectByName("questMark");
+        if (mark) {
+          mark.rotation.y += delta * 2;
+          mark.position.y = 45 + Math.sin(elapsed * 5) * 2;
+
+          const villagerId = mesh.userData.id;
+          if (gameState.villagersHelped.has(villagerId)) {
+            mark.visible = false;
+            const sparkles = mesh.getObjectByName("questSparkles");
+            if (sparkles) sparkles.visible = false;
+          }
+        }
+
+        // Idle animations for villagers
+        if (!gameState.villagersHelped.has(mesh.userData.id)) {
+          // Subtle breathing
+          const breathe = Math.sin(elapsed * 2 + index) * 0.02;
+          mesh.scale.y = 1 + breathe;
+
+          // Look around occasionally
+          const lookTime = elapsed * 0.5 + index;
+          if (Math.floor(lookTime) % 10 < 2) {
+            mesh.rotation.y = Math.sin(lookTime * 3) * 0.3;
+          } else {
+            mesh.rotation.y += (0 - mesh.rotation.y) * 0.05; // Return to forward
+          }
+
+          // Subtle arm movement
+          if (mesh.userData.arms) {
+            mesh.userData.arms.left.rotation.x = Math.sin(elapsed + index) * 0.1;
+            mesh.userData.arms.right.rotation.x = Math.sin(elapsed + index + Math.PI) * 0.1;
+          }
+        }
+
+        // Animate sparkles
+        const sparkles = mesh.getObjectByName("questSparkles");
+        if (sparkles) {
+          sparkles.rotation.y += delta;
+        }
+      });
+
+      // Animate ambient particles
+      const particles = scene.getObjectByName('ambientParticles');
+      if (particles) {
+        particles.rotation.y += delta * 0.1;
+        const positions = particles.geometry.attributes.position.array;
+        for (let i = 0; i < positions.length; i += 3) {
+          positions[i + 1] += Math.sin(elapsed + i) * 0.05;
+          if (positions[i + 1] > 200) positions[i + 1] = 0;
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+      }
+
+      // Animate clouds drifting
+      scene.children.forEach(child => {
+        if (child.userData.driftSpeed) {
+          child.position.x += child.userData.driftSpeed * delta;
+          if (child.position.x > 1000) child.position.x = -1000;
+        }
+      });
+
+      // Camera in front of player showing face
+      if (playerGroup) {
+        // Camera positioned in front of player to show face
+        const distance = 100;
+        const height = 80;
+
+        // Calculate camera position IN FRONT of player (opposite of facing direction)
+        const offsetX = -Math.sin(playerGroup.rotation.y) * distance;
+        const offsetZ = -Math.cos(playerGroup.rotation.y) * distance;
+
+        const targetX = playerGroup.position.x + offsetX;
+        const targetZ = playerGroup.position.z + offsetZ;
+        const targetY = playerGroup.position.y + height;
+
+        // Smooth camera movement
+        camera.position.x += (targetX - camera.position.x) * 0.1;
+        camera.position.y += (targetY - camera.position.y) * 0.1;
+        camera.position.z += (targetZ - camera.position.z) * 0.1;
+
+        // Look at player's face
+        camera.lookAt(playerGroup.position.x, playerGroup.position.y + 25, playerGroup.position.z);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function handleMovement(delta) {
+      if (!playerGroup) return;
+
+      // Running Logic
+      const isRunning = keysPressed['SHIFT'] || gameState.mobileRunPressed;
+      const speed = (isRunning ? RUN_SPEED : WALK_SPEED) * delta;
+
+      let moveForward = 0;
+      let rotateAmount = 0;
+
+      // Forward/Backward movement (W/S)
+      if (keysPressed['W'] || keysPressed['ARROWUP']) moveForward = 1;
+      if (keysPressed['S'] || keysPressed['ARROWDOWN']) moveForward = -1;
+
+      // Rotation (A/D)
+      if (keysPressed['A'] || keysPressed['ARROWLEFT']) rotateAmount = 1;
+      if (keysPressed['D'] || keysPressed['ARROWRIGHT']) rotateAmount = -1;
+
+      // Apply rotation
+      if (rotateAmount !== 0) {
+        const rotateSpeed = 2 * delta;
+        playerGroup.rotation.y += rotateAmount * rotateSpeed;
+      }
+
+      // Calculate movement relative to player's facing direction
+      let dx = 0;
+      let dz = 0;
+
+      if (moveForward !== 0) {
+        dx = Math.sin(playerGroup.rotation.y) * speed * moveForward;
+        dz = Math.cos(playerGroup.rotation.y) * speed * moveForward;
+      }
+
+      // Mobile controls - horizontal rotates, vertical moves forward/backward
+      if (gameState.isMobile && (gameState.mobileMove.x !== 0 || gameState.mobileMove.y !== 0)) {
+        // Horizontal axis (x) controls rotation (inverted: left = rotate right)
+        const rotationInput = -gameState.mobileMove.x;
+
+        // Vertical axis (y) controls forward/backward movement
+        const forwardInput = -gameState.mobileMove.y; // Negative because up is negative in joystick coords
+
+        // Apply rotation based on horizontal input
+        if (Math.abs(rotationInput) > 0.1) {
+          const rotateSpeed = 3 * delta;
+          playerGroup.rotation.y += rotationInput * rotateSpeed;
+        }
+
+        // Apply forward/backward movement based on vertical input
+        if (Math.abs(forwardInput) > 0.1) {
+          dx = Math.sin(playerGroup.rotation.y) * speed * forwardInput;
+          dz = Math.cos(playerGroup.rotation.y) * speed * forwardInput;
+          moveForward = Math.abs(forwardInput);
+        }
+      }
+
+      const newX = playerGroup.position.x + dx;
+      const newZ = playerGroup.position.z + dz;
+
+      // Check collision
+      if (!checkCollision(newX, newZ)) {
+        playerGroup.position.x = newX;
+        playerGroup.position.z = newZ;
+
+        if (moveForward !== 0) {
+          // Enhanced Walk Cycle - Coordinated limb movement
+          const animSpeed = isRunning ? 15 : 10;
+          const angle = clock.elapsedTime * animSpeed;
+          const legSwing = Math.sin(angle) * 0.5;
+
+          // Legs
+          playerGroup.userData.legs.left.rotation.x = legSwing;
+          playerGroup.userData.legs.right.rotation.x = -legSwing;
+
+          // Arms swing opposite to legs for natural motion
+          if (playerGroup.userData.arms) {
+            playerGroup.userData.arms.left.rotation.x = -legSwing * 0.7;
+            playerGroup.userData.arms.right.rotation.x = legSwing * 0.7;
+          }
+
+          // Slight body bob for realism
+          playerGroup.position.y = Math.abs(Math.sin(angle * 2)) * 0.5;
+
+          // Play walk sound if moving
+          if (walkSound && walkSound.paused) {
+            walkSound.playbackRate = isRunning ? 1.5 : 1.0;
+            walkSound.play().catch(e => { });
+          }
+        } else {
+          // Reset to idle pose
+          playerGroup.userData.legs.left.rotation.x = 0;
+          playerGroup.userData.legs.right.rotation.x = 0;
+          if (playerGroup.userData.arms) {
+            playerGroup.userData.arms.left.rotation.x = 0;
+            playerGroup.userData.arms.right.rotation.x = 0;
+          }
+          if (walkSound) walkSound.pause();
+        }
+      }
+    }
+
+    function checkCollision(x, z) {
+      const playerSize = 10;
+
+      // Check collision with cars
+      for (let b of cars) {
+        if (x > b.x - b.w / 2 - playerSize &&
+          x < b.x + b.w / 2 + playerSize &&
+          z > b.z - b.d / 2 - playerSize &&
+          z < b.z + b.d / 2 + playerSize) {
+          return true;
+        }
+      }
+
+      // Check collision with buildings (school, library, shop, mosque, etc.)
+      for (let b of buildings) {
+        if (x > b.x - b.w / 2 - playerSize &&
+          x < b.x + b.w / 2 + playerSize &&
+          z > b.z - b.d / 2 - playerSize &&
+          z < b.z + b.d / 2 + playerSize) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    function checkInteractions() {
+      let nearest = null;
+      let minDist = 60;
+
+      villagerMeshes.forEach(mesh => {
+        const dist = playerGroup.position.distanceTo(mesh.position);
+        if (dist < minDist) {
+          nearest = mesh.userData.id;
+        }
+      });
+
+      const prompt = document.getElementById('interaction-prompt');
+      if (!prompt) return;
+
+      if (nearest) {
+        const villager = VILLAGERS.find(v => v.id === nearest);
+        if (!gameState.villagersHelped.has(villager.id)) {
+          prompt.style.display = 'block';
+          if (keysPressed['E'] || gameState.mobileInteractPressed) {
+            keysPressed['E'] = false;
+            gameState.mobileInteractPressed = false;
+            startInteraction(villager);
+          }
+        } else {
+          prompt.style.display = 'none';
+        }
+      } else {
+        prompt.style.display = 'none';
+      }
+    }
+
+    function onWindowResize() {
+      if (!camera) return;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function setupControls() {
+      window.addEventListener('keydown', (e) => {
+        keysPressed[e.key.toUpperCase()] = true;
+      });
+      window.addEventListener('keyup', (e) => {
+        keysPressed[e.key.toUpperCase()] = false;
+      });
+    }
+
+    function setupMobileControls() {
+      const stick = document.getElementById('joystick');
+      const knob = document.getElementById('joystick-knob');
+      const interactBtn = document.getElementById('mobile-interact-btn');
+      const jumpBtn = document.getElementById('mobile-jump-btn');
+      const runBtn = document.getElementById('mobile-run-btn');
+      let startX, startY;
+
+      stick.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+      }, { passive: false });
+
+      stick.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const touch = e.touches[0];
+        const deltaX = touch.clientX - startX;
+        const deltaY = touch.clientY - startY;
+        const distance = Math.min(40, Math.sqrt(deltaX * deltaX + deltaY * deltaY));
+        const angle = Math.atan2(deltaY, deltaX);
+        const moveX = Math.cos(angle) * distance;
+        const moveY = Math.sin(angle) * distance;
+        knob.style.transform = `translate(calc(-50 % + ${moveX}px), calc(-50 % + ${moveY}px))`;
+        gameState.mobileMove.x = moveX / 40;
+        gameState.mobileMove.y = moveY / 40;
+      }, { passive: false });
+
+      stick.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        knob.style.transform = `translate(-50 %, -50 %)`;
+        gameState.mobileMove.x = 0;
+        gameState.mobileMove.y = 0;
+      }, { passive: false });
+
+      interactBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        gameState.mobileInteractPressed = true;
+      }, { passive: false });
+
+      interactBtn.addEventListener('touchend', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        gameState.mobileInteractPressed = false;
+      }, { passive: false });
+
+
+
+      if (runBtn) {
+        runBtn.addEventListener('touchstart', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          gameState.mobileRunPressed = true;
+          runBtn.style.transform = "scale(0.9)";
+        }, { passive: false });
+
+        runBtn.addEventListener('touchend', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          gameState.mobileRunPressed = false;
+          runBtn.style.transform = "scale(1)";
+        }, { passive: false });
+      }
+    }
+
+    function startInteraction(villager) {
+      gameState.isInputActive = false;
+      gameState.mobileMove = { x: 0, y: 0 };
+      document.getElementById('interaction-prompt').style.display = 'none';
+      const box = document.getElementById('dialogue-box');
+      document.getElementById('dialogue-speaker').innerText = villager.name;
+      document.getElementById('dialogue-text').innerText = villager.problem;
+      const optionsDiv = document.getElementById('dialogue-options');
+      optionsDiv.innerHTML = '';
+      const helpBtn = document.createElement('button');
+      helpBtn.className = 'dialogue-btn';
+      helpBtn.innerText = "I can help!";
+      helpBtn.onclick = () => {
+        box.classList.remove('active');
+        launchTask(villager);
+      };
+      const leaveBtn = document.createElement('button');
+      leaveBtn.className = 'dialogue-btn';
+      leaveBtn.innerText = "Bye";
+      leaveBtn.style.background = "#555";
+      leaveBtn.onclick = () => {
+        box.classList.remove('active');
+        gameState.isInputActive = true;
+      };
+      optionsDiv.appendChild(helpBtn);
+      optionsDiv.appendChild(leaveBtn);
+      box.classList.add('active');
+    }
+
+    function launchTask(villager) {
+      const task = getCurrentTask(villager);
+      const totalTasks = villager.tasks.length;
+      const currentIdx = (gameState.villagerTaskProgress[villager.id] || 0) + 1;
+      const modal = document.getElementById('task-modal');
+      const content = document.getElementById('task-content');
+      const buttons = document.getElementById('task-buttons');
+      const feedback = document.getElementById('task-feedback');
+      feedback.innerText = "";
+      buttons.innerHTML = "";
+
+      // Show question counter
+      const counterHtml = `<p style="font-size:14px; color:#888; margin-bottom:10px;">Question ${currentIdx} of ${totalTasks}</p>`;
+
+      if (task.type === 'multipleChoice' || task.type === 'matchWord') {
+        content.innerHTML = counterHtml + `<p style="font-size:18px">${task.question}</p>`;
+        task.options.forEach((opt, idx) => {
+          const div = document.createElement('div');
+          div.className = 'task-option';
+          div.innerText = opt;
+          div.onclick = () => checkAnswer(villager, idx, div);
+          content.appendChild(div);
+        });
+      } else if (task.type === 'fillBlank') {
+        content.innerHTML = counterHtml + `
+           <p style="font-size:18px">${task.question}</p>
+           <p style="color:#aaa; font-size:14px">Hint: ${task.hint}</p>
+           <input type="text" id="blank-input" style="padding:10px; font-size:16px; width:80%; border:2px solid #ccc; border-radius:8px;">
+         `;
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'btn-primary';
+        submitBtn.innerText = 'Submit';
+        submitBtn.style.marginTop = "10px";
+        submitBtn.onclick = () => {
+          const val = document.getElementById('blank-input').value.trim().toLowerCase();
+          checkBlankAnswer(villager, val);
+        };
+        buttons.appendChild(submitBtn);
+      }
+      // Reset wrong attempts for new task
+      gameState.wrongAttempts = 0;
+      modal.classList.add('active');
+    }
+
+
+    function checkAnswer(villager, selectedIdx, btnElement) {
+      const task = getCurrentTask(villager);
+      const feedback = document.getElementById('task-feedback');
+      if (selectedIdx === task.correct) {
+        btnElement.classList.add('correct');
+        feedback.style.color = 'green';
+        feedback.innerText = task.explanation;
+        playSuccessSound();
+        gameState.wrongAttempts = 0;
+        setTimeout(() => completeVillager(villager), 1500);
+      } else {
+        btnElement.classList.add('incorrect');
+        gameState.wrongAttempts++;
+        gameState.perfectScore = false;
+
+        if (gameState.wrongAttempts >= 3) {
+          // Show correct answer after 3 wrong attempts
+          feedback.style.color = 'orange';
+          feedback.innerHTML = `<strong>Hint:</strong> The correct answer is "<strong>${task.options[task.correct]}</strong>". ${task.explanation}`;
+        } else {
+          feedback.style.color = 'red';
+          feedback.innerText = `Wrong! Try again. (Attempt ${gameState.wrongAttempts}/3)`;
+          playErrorSound();
+        }
+      }
+    }
+
+    function checkBlankAnswer(villager, value) {
+      const task = getCurrentTask(villager);
+      const feedback = document.getElementById('task-feedback');
+      if (value === task.blank.toLowerCase()) {
+        feedback.style.color = 'green';
+        feedback.innerText = task.explanation;
+        playSuccessSound();
+        gameState.wrongAttempts = 0;
+        setTimeout(() => completeVillager(villager), 1500);
+      } else {
+        gameState.wrongAttempts++;
+        gameState.perfectScore = false;
+
+        if (gameState.wrongAttempts >= 4) {
+          // Show correct answer after 4 wrong attempts and auto-complete
+          feedback.style.color = 'orange';
+          feedback.innerHTML = `The correct answer is "<strong>${task.blank}</strong>". ${task.explanation}`;
+          // Disable input and submit button
+          const input = document.getElementById('blank-input');
+          if (input) { input.value = task.blank; input.disabled = true; }
+          const buttons = document.getElementById('task-buttons');
+          if (buttons) buttons.innerHTML = '';
+          setTimeout(() => completeVillager(villager), 2000);
+        } else {
+          // Reveal letters progressively: 1st mistake = 1st letter, 2nd = 2nd, 3rd = 3rd
+          const answer = task.blank;
+          let hint = '';
+          for (let i = 0; i < answer.length; i++) {
+            if (i < gameState.wrongAttempts) {
+              hint += answer[i];
+            } else {
+              hint += ' _';
+            }
+          }
+          feedback.style.color = '#e67e22';
+          feedback.innerHTML = `Not quite! <strong>Hint:</strong> <span style="font-family:monospace; font-size:20px; letter-spacing:2px;">${hint.trim()}</span> <br><span style="font-size:13px; color:#888;">(Attempt ${gameState.wrongAttempts}/4)</span>`;
+          playErrorSound();
+        }
+      }
+    }
+
+    function completeVillager(villager) {
+      // Learn vocabulary from current task
+      const task = getCurrentTask(villager);
+      const text = task.question + " " + task.explanation;
+      const words = text.toLowerCase().split(/\s+/);
+      words.forEach(w => {
+        const clean = w.replace(/[^a-z]/g, "");
+        if (VOCABULARY[clean]) gameState.vocabularyLearned.add(clean);
+      });
+
+      // Advance to next task
+      if (!gameState.villagerTaskProgress[villager.id]) {
+        gameState.villagerTaskProgress[villager.id] = 0;
+      }
+      gameState.villagerTaskProgress[villager.id]++;
+
+      const totalTasks = villager.tasks.length;
+      const currentIdx = gameState.villagerTaskProgress[villager.id];
+
+      if (currentIdx < totalTasks) {
+        // More tasks remaining — launch next question
+        document.getElementById('task-modal').classList.remove('active');
+        setTimeout(() => launchTask(villager), 500);
+        return;
+      }
+
+      // All tasks complete — fully complete this villager
+      document.getElementById('task-modal').classList.remove('active');
+      gameState.villagersHelped.add(villager.id);
+
+      // Award computer part as reward
+      const part = villager.partReward;
+      if (part && !gameState.collectedParts.includes(part.id)) {
+        gameState.collectedParts.push(part.id);
+        showPartReward(villager.name, part);
+      }
+
+      updateHUD();
+      checkAchievements();
+      gameState.isInputActive = true;
+
+      // Check if computer is complete
+      if (gameState.collectedParts.length === 10 && !gameState.achievements.has('computer')) {
+        setTimeout(() => {
+          showAchievement('🖥️ Computer Built!', 'You collected all 10 parts and built a computer!');
+          gameState.achievements.add('computer');
+        }, 3000);
+      }
+
+      if (gameState.villagersHelped.size === VILLAGERS.length) {
+        setTimeout(() => {
+          document.getElementById('end-screen').classList.add('active');
+          document.getElementById('end-parts').innerText = gameState.collectedParts.length;
+          document.getElementById('end-vocab').innerText = gameState.vocabularyLearned.size;
+          // Show collected parts icons
+          const partsList = document.getElementById('end-parts-list');
+          if (partsList) {
+            partsList.innerHTML = VILLAGERS.map(v => v.partReward ? v.partReward.icon : '').join(' ');
+          }
+        }, 1000);
+      }
+    }
+
+    function showPartReward(npcName, part) {
+      const popup = document.createElement('div');
+      popup.style.cssText = `
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white; padding: 30px 40px; border-radius: 20px;
+        font-weight: bold; z-index: 10000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.4); text-align: center;
+        border: 4px solid #ffd700;
+      `;
+      popup.innerHTML = `
+        <div style="font-size: 50px; margin-bottom: 10px;">${part.icon}</div>
+        <div style="font-size: 22px; margin-bottom: 8px;">🎁 New Part!</div>
+        <div style="font-size: 18px; opacity: 0.9;">${npcName} gave you</div>
+        <div style="font-size: 24px; color: #ffd700; margin-top: 5px;">${part.name}</div>
+        <div style="font-size: 14px; margin-top: 10px; opacity: 0.7;">Parts: ${gameState.collectedParts.length}/10</div>
+      `;
+      document.body.appendChild(popup);
+      playSuccessSound();
+      setTimeout(() => {
+        popup.style.opacity = '0';
+        popup.style.transition = 'opacity 0.5s';
+        setTimeout(() => popup.remove(), 500);
+      }, 2500);
+    }
+
+    function updateHUD() {
+      // Update Desktop parts count
+      const hudParts = document.getElementById('hud-parts');
+      if (hudParts) hudParts.innerText = gameState.collectedParts.length + '/10';
+
+      const list = document.getElementById('villager-list');
+      if (list) {
+        list.innerHTML = "";
+        VILLAGERS.forEach(v => {
+          const div = document.createElement('div');
+          const isDone = gameState.villagersHelped.has(v.id);
+          div.className = `villager-status ${isDone ? 'helped' : ''}`;
+          div.innerText = `${isDone ? '✓ ' + (v.partReward ? v.partReward.icon : '') : '○'} ${v.name}`;
+          list.appendChild(div);
+        });
+      }
+
+      // Update Mobile
+      const mParts = document.getElementById('mobile-parts-val');
+      if (mParts) mParts.innerText = gameState.collectedParts.length + '/10';
+
+      const mList = document.getElementById('mobile-villager-list');
+      if (mList) {
+        mList.innerHTML = "";
+        VILLAGERS.forEach(v => {
+          const div = document.createElement('div');
+          const isDone = gameState.villagersHelped.has(v.id);
+          div.style.padding = "10px";
+          div.style.borderBottom = "1px solid #eee";
+          div.style.color = isDone ? "green" : "#333";
+          div.style.fontWeight = isDone ? "bold" : "normal";
+          div.innerText = `${isDone ? '✓ ' + (v.partReward ? v.partReward.icon : '') : '○'} ${v.name}`;
+          mList.appendChild(div);
+        });
+      }
+    }
+
+    window.onload = initApp;
+
+  </script>
+</body>
+
+</html>
